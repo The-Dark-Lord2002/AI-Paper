@@ -89,6 +89,14 @@ python predict.py --checkpoint-dir checkpoints \
     "A bulk carrier ran aground after losing steering control in heavy weather."
 ```
 
+## Notebook
+
+`BERT_BiLSTM_Marine_Incident_Classification.ipynb` walks through the same
+pipeline end-to-end in a single notebook (data loading/splitting, model
+definition, training loop, test evaluation, checkpoint saving, and
+inference) — handy for running on Colab/Kaggle/Jupyter with a GPU instead
+of the CLI scripts below.
+
 ## Files
 
 - `dataset.py` — loads the dataset from the Hub, cleans text, encodes labels,
@@ -96,3 +104,5 @@ python predict.py --checkpoint-dir checkpoints \
 - `model.py` — the `BertBiLSTMClassifier` module.
 - `train.py` — training/evaluation loop.
 - `predict.py` — inference on new narratives with a saved checkpoint.
+- `BERT_BiLSTM_Marine_Incident_Classification.ipynb` — notebook version of
+  the full pipeline.
