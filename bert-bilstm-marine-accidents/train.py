@@ -1,10 +1,13 @@
 """Fine-tune the BERT + BiLSTM classifier on the MAIB incident-reports dataset.
 
-Full-text access to Xu et al. (2025) was not available in this environment
-(MDPI/ResearchGate egress was blocked), so exact paper hyperparameters could
-not be confirmed. This script uses standard BERT fine-tuning defaults and
-exposes every hyperparameter as a CLI flag so they can be corrected to match
-the paper if/when its exact settings are available. See README.md.
+Hyperparameter defaults below are taken directly from Table 9 ("Model
+parameter settings") of Zhao et al. (2025), "Causation Analysis of Marine
+Traffic Accidents Using Deep Learning Approaches: A Case Study from China's
+Coasts" (Systems, 13(4):284), and from Section 4.1 (train/val/test split) and
+Section 4.2 / Figure 7 (epoch count) of the same paper. See README.md for the
+full mapping between each flag and where it comes from in the paper, and for
+the caveat that these were tuned on the paper's own 32-class, ~26k-example
+dataset rather than the ~5.8k-example, single-label MAIB dataset used here.
 """
 import argparse
 import json
@@ -16,7 +19,7 @@ import torch
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
-from transformers import BertTokenizerFast, get_linear_schedule_with_warmup
+from transformers import BertTokenizerFast
 
 from dataset import MAIBTextDataset, load_maib_splits
 from model import BertBiLSTMClassifier
@@ -33,24 +36,24 @@ def parse_args():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--bert-name", default="bert-base-uncased")
     p.add_argument("--max-length", type=int, default=128)
-    p.add_argument("--lstm-hidden", type=int, default=256)
+    p.add_argument("--lstm-hidden", type=int, default=128)
     p.add_argument("--lstm-layers", type=int, default=1)
     p.add_argument("--dropout", type=float, default=0.3)
     p.add_argument("--freeze-bert", action="store_true")
-    p.add_argument("--batch-size", type=int, default=16)
-    p.add_argument("--epochs", type=int, default=4)
-    p.add_argument("--bert-lr", type=float, default=2e-5)
-    p.add_argument("--head-lr", type=float, default=1e-3)
-    p.add_argument("--warmup-ratio", type=float, default=0.1)
-    p.add_argument("--max-grad-norm", type=float, default=1.0)
-    p.add_argument("--val-size", type=float, default=0.1)
-    p.add_argument("--test-size", type=float, default=0.1)
+    p.add_argument("--batch-size", type=int, default=32)
+    p.add_argument("--epochs", type=int, default=20)
+    p.add_argument("--lr", type=float, default=1e-6)
+    p.add_argument("--l2-weight-decay", type=float, default=0.05)
+    p.add_argument("--l1-lambda", type=float, default=5e-10)
+    p.add_argument("--max-grad-norm", type=float, default=2.75)
+    p.add_argument("--val-size", type=float, default=0.15)
+    p.add_argument("--test-size", type=float, default=0.15)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--output-dir", default="checkpoints")
     return p.parse_args()
 
 
-def run_epoch(model, loader, device, optimizer=None, scheduler=None, max_grad_norm=1.0):
+def run_epoch(model, loader, device, optimizer=None, max_grad_norm=2.75, l1_lambda=0.0):
     is_train = optimizer is not None
     model.train() if is_train else model.eval()
 
@@ -68,11 +71,14 @@ def run_epoch(model, loader, device, optimizer=None, scheduler=None, max_grad_no
             loss = loss_fn(logits, labels)
 
             if is_train:
+                if l1_lambda > 0:
+                    l1_penalty = sum(p.abs().sum() for p in model.parameters())
+                    loss = loss + l1_lambda * l1_penalty
+
                 optimizer.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
                 optimizer.step()
-                scheduler.step()
 
             total_loss += loss.item() * labels.size(0)
             all_preds.extend(logits.argmax(dim=1).cpu().tolist())
@@ -117,20 +123,10 @@ def main():
         freeze_bert=args.freeze_bert,
     ).to(device)
 
-    head_params = list(model.bilstm.parameters()) + list(model.classifier.parameters())
-    optimizer = AdamW(
-        [
-            {"params": model.bert.parameters(), "lr": args.bert_lr},
-            {"params": head_params, "lr": args.head_lr},
-        ]
-    )
-
-    total_steps = len(train_loader) * args.epochs
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer,
-        num_warmup_steps=int(total_steps * args.warmup_ratio),
-        num_training_steps=total_steps,
-    )
+    # Single learning rate across all parameters + AdamW's decoupled weight decay
+    # as the L2 term, matching Table 9. The L1 term (--l1-lambda) is added
+    # manually to the loss inside run_epoch since AdamW has no native L1 option.
+    optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=args.l2_weight_decay)
 
     os.makedirs(args.output_dir, exist_ok=True)
     with open(os.path.join(args.output_dir, "label_classes.json"), "w") as f:
@@ -141,7 +137,7 @@ def main():
 
     for epoch in range(1, args.epochs + 1):
         train_loss, train_acc, train_f1, _, _ = run_epoch(
-            model, train_loader, device, optimizer, scheduler, args.max_grad_norm
+            model, train_loader, device, optimizer, args.max_grad_norm, args.l1_lambda
         )
         val_loss, val_acc, val_f1, _, _ = run_epoch(model, val_loader, device)
 
