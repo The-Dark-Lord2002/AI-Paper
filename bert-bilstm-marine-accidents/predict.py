@@ -19,7 +19,7 @@ def parse_args():
     p.add_argument("--checkpoint-dir", default="checkpoints")
     p.add_argument("--bert-name", default="bert-base-uncased")
     p.add_argument("--max-length", type=int, default=128)
-    p.add_argument("--lstm-hidden", type=int, default=256)
+    p.add_argument("--lstm-hidden", type=int, default=128)
     p.add_argument("--lstm-layers", type=int, default=1)
     p.add_argument("--dropout", type=float, default=0.3)
     p.add_argument("text", nargs="+", help="One or more incident narratives to classify")
