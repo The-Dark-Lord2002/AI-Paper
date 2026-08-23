@@ -127,6 +127,26 @@ Note: the paper's learning rate (1e-6) is unusually low for BERT
 fine-tuning (typical recipes use 1e-5–5e-5) — its own Figure 7 shows this
 is compensated for by training ~20 epochs rather than the usual 3-4.
 
+### Running out of GPU memory?
+
+The paper trained on an RTX 4060 Ti (8GB VRAM) at batch size 32. On a
+smaller GPU, `RuntimeError: CUDA out of memory` at that batch size is
+expected, not a bug. Two independent knobs help:
+
+- **Mixed precision is on by default on CUDA** (roughly halves activation
+  memory); disable it with `--no-amp` only if you need exact fp32 training.
+- **Gradient accumulation** lets you shrink the per-step batch while keeping
+  the same *effective* batch size the paper used — e.g. on a 4GB GPU:
+
+  ```bash
+  uv run train.py --batch-size 4 --grad-accum-steps 8
+  ```
+
+  This still averages gradients over 32 examples before each optimizer step
+  (matching Table 9), it just never holds more than 4 examples' activations
+  in memory at once. Drop `--batch-size` further (and raise
+  `--grad-accum-steps` to match) if it still doesn't fit.
+
 ## Predict
 
 ```bash
