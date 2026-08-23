@@ -146,7 +146,12 @@ def main():
     print(f"\nTest results: loss={test_loss:.4f} acc={test_acc:.4f} macro_f1={test_f1:.4f}\n")
     print(
         classification_report(
-            test_labels, test_preds, target_names=label_encoder.classes_, digits=4
+            test_labels,
+            test_preds,
+            labels=list(range(num_classes)),
+            target_names=label_encoder.classes_,
+            digits=4,
+            zero_division=0,
         )
     )
 

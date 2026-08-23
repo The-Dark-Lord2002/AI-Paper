@@ -56,11 +56,18 @@ def load_classes(checkpoint_dir):
 
 def evaluate(model, loader, device, classes):
     _, acc, macro_f1, preds, labels = run_epoch(model, loader, device)
+    all_labels = list(range(len(classes)))
     report = classification_report(
-        labels, preds, target_names=classes, digits=4, output_dict=True, zero_division=0
+        labels,
+        preds,
+        labels=all_labels,
+        target_names=classes,
+        digits=4,
+        output_dict=True,
+        zero_division=0,
     )
     report_text = classification_report(
-        labels, preds, target_names=classes, digits=4, zero_division=0
+        labels, preds, labels=all_labels, target_names=classes, digits=4, zero_division=0
     )
     return acc, macro_f1, report, report_text
 
