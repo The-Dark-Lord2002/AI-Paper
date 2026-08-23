@@ -79,6 +79,15 @@ See `model.py` (`BertBiLSTMClassifier`), which mirrors Figure 1 of the paper.
 
 ## Setup
 
+With [uv](https://docs.astral.sh/uv/) (recommended — resolves and installs
+into a project-local `.venv` from `pyproject.toml`/`uv.lock`):
+
+```bash
+uv sync
+```
+
+Or with plain `pip`:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -86,6 +95,8 @@ pip install -r requirements.txt
 ## Train
 
 ```bash
+uv run train.py
+# or, without uv:
 python train.py
 ```
 
@@ -119,6 +130,9 @@ is compensated for by training ~20 epochs rather than the usual 3-4.
 ## Predict
 
 ```bash
+uv run predict.py --checkpoint-dir checkpoints \
+    "A bulk carrier ran aground after losing steering control in heavy weather."
+# or, without uv:
 python predict.py --checkpoint-dir checkpoints \
     "A bulk carrier ran aground after losing steering control in heavy weather."
 ```
@@ -140,3 +154,5 @@ of the CLI scripts below.
 - `predict.py` — inference on new narratives with a saved checkpoint.
 - `BERT_BiLSTM_Marine_Incident_Classification.ipynb` — notebook version of
   the full pipeline.
+- `pyproject.toml` / `uv.lock` — project metadata and pinned dependencies for
+  [uv](https://docs.astral.sh/uv/); `requirements.txt` covers plain `pip`.
