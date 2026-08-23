@@ -21,11 +21,24 @@ def clean_text(text: str) -> str:
     return text
 
 
+def _split(*arrays, test_size, seed, stratify):
+    """train_test_split, falling back to an unstratified split if a class in
+    `stratify` is too rare to appear on both sides of the split."""
+    try:
+        return train_test_split(
+            *arrays, test_size=test_size, random_state=seed, stratify=stratify
+        )
+    except ValueError:
+        return train_test_split(*arrays, test_size=test_size, random_state=seed)
+
+
 def load_maib_splits(seed: int = 42, val_size: float = 0.1, test_size: float = 0.1):
     """Fetch the dataset from the Hub and produce stratified train/val/test splits.
 
     The dataset only ships a single `train` split, so the splits below are
-    carved out of it (stratified on label to keep class balance across splits).
+    carved out of it (stratified on label to keep class balance across splits,
+    with a graceful fallback to a random split for any class too rare to be
+    stratified).
     """
     raw = load_dataset(DATASET_NAME, split="train")
     texts = [clean_text(t) for t in raw["text"]]
@@ -35,16 +48,12 @@ def load_maib_splits(seed: int = 42, val_size: float = 0.1, test_size: float = 0
     labels = label_encoder.fit_transform(labels_raw)
 
     holdout_size = val_size + test_size
-    train_texts, temp_texts, train_labels, temp_labels = train_test_split(
-        texts, labels, test_size=holdout_size, random_state=seed, stratify=labels
+    train_texts, temp_texts, train_labels, temp_labels = _split(
+        texts, labels, test_size=holdout_size, seed=seed, stratify=labels
     )
     relative_test_size = test_size / holdout_size
-    val_texts, test_texts, val_labels, test_labels = train_test_split(
-        temp_texts,
-        temp_labels,
-        test_size=relative_test_size,
-        random_state=seed,
-        stratify=temp_labels,
+    val_texts, test_texts, val_labels, test_labels = _split(
+        temp_texts, temp_labels, test_size=relative_test_size, seed=seed, stratify=temp_labels
     )
 
     splits = {
