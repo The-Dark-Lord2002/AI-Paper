@@ -1,24 +1,21 @@
-"""Fine-tune the BERT + BiLSTM classifier on the MAIB incident-reports dataset.
+"""Fine-tune the plain-BERT baseline on the MAIB incident-reports dataset.
 
-Hyperparameter defaults below are taken directly from the "BERT + BiLSTM"
-column of Table 9 ("Model parameter settings") of Zhao et al. (2025),
-"Causation Analysis of Marine Traffic Accidents Using Deep Learning
-Approaches: A Case Study from China's Coasts" (Systems, 13(4):284), and from
-Section 4.1 (train/val/test split) and Section 4.2 / Figure 7 (epoch count)
-of the same paper. See README.md for the full mapping between each flag and
-where it comes from in the paper, and for the caveat that these were tuned
-on the paper's own 32-class, ~26k-example dataset rather than the
-~5.8k-example, single-label MAIB dataset used here.
+This is the paper's "BERT" ablation column from Table 9 -- the same task,
+same dataset splits, same training loop as train.py (BERT + BiLSTM), but
+without the BiLSTM stage. Training both and running compare_models.py
+reproduces, on this dataset, the comparison the paper itself makes on its
+own dataset (Table 10): does BiLSTM actually help?
 
-For the paper's plain-"BERT" baseline (its Table 9 first column, used to
-measure what BiLSTM adds), see train_bert_baseline.py; compare_models.py
-evaluates both checkpoints side by side once trained.
+Hyperparameter defaults below are taken directly from the "BERT" column of
+Table 9 ("Model parameter settings") of Zhao et al. (2025): hidden layer
+512, learning rate 1e-6, 3 dropout layers, L1 1e-8, L2 0.05, gradient clip
+2.35, AdamW, GELU activation, batch size 32. See baseline_model.py for the
+one thing Table 9 doesn't fully specify (how those 3 dropout layers and the
+512-dim hidden layer are laid out) and README.md for the full mapping.
 
-If you hit "CUDA out of memory" on a smaller GPU than the paper's (RTX
-4060 Ti, 8GB), lower --batch-size and raise --grad-accum-steps by the same
-factor to keep the *effective* batch size at 32 -- e.g. --batch-size 4
---grad-accum-steps 8. Mixed-precision training is on by default on CUDA
-(disable with --no-amp) and roughly halves activation memory.
+Same GPU-memory notes as train.py apply: on a smaller GPU than the paper's,
+use --batch-size/--grad-accum-steps to keep the same effective batch size
+without running out of memory, e.g. --batch-size 4 --grad-accum-steps 8.
 """
 import argparse
 import json
@@ -30,8 +27,8 @@ from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from transformers import BertTokenizerFast
 
+from baseline_model import BertClassifier
 from dataset import MAIBTextDataset, load_maib_splits
-from model import BertBiLSTMClassifier
 from training_utils import run_epoch, set_seed
 
 
@@ -41,8 +38,7 @@ def parse_args():
     )
     p.add_argument("--bert-name", default="bert-base-uncased")
     p.add_argument("--max-length", type=int, default=128)
-    p.add_argument("--lstm-hidden", type=int, default=128)
-    p.add_argument("--lstm-layers", type=int, default=1)
+    p.add_argument("--hidden-dim", type=int, default=512)
     p.add_argument("--dropout", type=float, default=0.3)
     p.add_argument("--freeze-bert", action="store_true")
     p.add_argument("--batch-size", type=int, default=32)
@@ -56,12 +52,12 @@ def parse_args():
     p.add_argument("--epochs", type=int, default=20)
     p.add_argument("--lr", type=float, default=1e-6)
     p.add_argument("--l2-weight-decay", type=float, default=0.05)
-    p.add_argument("--l1-lambda", type=float, default=5e-10)
-    p.add_argument("--max-grad-norm", type=float, default=2.75)
+    p.add_argument("--l1-lambda", type=float, default=1e-8)
+    p.add_argument("--max-grad-norm", type=float, default=2.35)
     p.add_argument("--val-size", type=float, default=0.15)
     p.add_argument("--test-size", type=float, default=0.15)
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--output-dir", default="checkpoints")
+    p.add_argument("--output-dir", default="checkpoints_bert_baseline")
     p.add_argument(
         "--no-amp",
         action="store_true",
@@ -95,18 +91,18 @@ def main():
     val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False)
     test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False)
 
-    model = BertBiLSTMClassifier(
+    model = BertClassifier(
         num_classes=num_classes,
         bert_name=args.bert_name,
-        lstm_hidden=args.lstm_hidden,
-        lstm_layers=args.lstm_layers,
+        hidden_dim=args.hidden_dim,
         dropout=args.dropout,
         freeze_bert=args.freeze_bert,
     ).to(device)
 
     # Single learning rate across all parameters + AdamW's decoupled weight decay
-    # as the L2 term, matching Table 9. The L1 term (--l1-lambda) is added
-    # manually to the loss inside run_epoch since AdamW has no native L1 option.
+    # as the L2 term, matching Table 9's "BERT" column. The L1 term
+    # (--l1-lambda) is added manually to the loss inside run_epoch since
+    # AdamW has no native L1 option.
     optimizer = AdamW(model.parameters(), lr=args.lr, weight_decay=args.l2_weight_decay)
     scaler = torch.amp.GradScaler(device=device.type, enabled=use_amp)
 
