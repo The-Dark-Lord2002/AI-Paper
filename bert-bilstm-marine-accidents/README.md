@@ -277,15 +277,25 @@ Output: how many reports got tagged with at least one factor, the frequent
 itemsets found, and the top rules sorted by confidence and by lift (mirroring
 the paper's Tables 5–8), optionally saved to CSV.
 
-## Notebook
+## Notebooks
 
 `BERT_BiLSTM_Marine_Incident_Classification.ipynb` walks through the
 BERT + BiLSTM pipeline end-to-end in a single notebook (data
 loading/splitting, model definition, training loop, test evaluation,
 checkpoint saving, and inference) — handy for running on Colab/Kaggle/Jupyter
-with a GPU instead of the CLI scripts. It doesn't yet cover the plain-BERT
-baseline, comparison, or Apriori stage added later — those are `.py` scripts
-only for now.
+with a GPU instead of the CLI scripts. It doesn't cover the plain-BERT
+baseline, comparison, or Apriori stage.
+
+`Thesis_Progress_Full_Pipeline.ipynb` covers all four components in one
+notebook — plain BERT baseline, BERT + BiLSTM, the Table-10-style comparison,
+and Apriori — by importing this project's own modules (`dataset.py`,
+`model.py`, `baseline_model.py`, `causal_factors.py`, `training_utils.py`),
+so run it from inside this directory. It has a `FAST_DEMO` config flag
+(5 epochs, batch size 8 with gradient accumulation to an effective batch of
+32 — sized for a 4GB laptop GPU) for a quick, genuine end-to-end check;
+flip it off for the paper-faithful 20-epoch run once you have time. Ends
+with one summary table covering all four components and a
+`thesis_progress_summary.md` export.
 
 ## Files
 
