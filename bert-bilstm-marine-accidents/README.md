@@ -11,23 +11,26 @@ Implementation of the full three-part method from:
 applied to the [`baker-street/maib-incident-reports-5K`](https://huggingface.co/datasets/baker-street/maib-incident-reports-5K)
 dataset of UK MAIB marine incident narratives.
 
+Everything — training, evaluation, comparison, and Apriori — runs from a
+single notebook: **`Thesis_Progress_Full_Pipeline.ipynb`**.
+
 ## What's implemented
 
-| Paper component | What it does | Here |
+| Paper component | What it does | Where in the notebook |
 |---|---|---|
-| **BERT** (baseline, Table 9 "BERT" column) | Plain BERT + dense head classifier, no BiLSTM | `baseline_model.py` + `train_bert_baseline.py` |
-| **BERT + BiLSTM** (Table 9 "BERT + BiLSTM" column) | The paper's proposed model | `model.py` + `train.py` |
-| **Comparison** (the paper's own Table 10 ablation) | Does BiLSTM actually help? | `compare_models.py` |
-| **Apriori** (Section 3.2/3.3, Section 4.4) | Mines which causal factors co-occur | `causal_factors.py` + `apriori_analysis.py` |
+| **BERT** (baseline, Table 9 "BERT" column) | Plain BERT + dense head classifier, no BiLSTM | Part 1 (uses `baseline_model.py`) |
+| **BERT + BiLSTM** (Table 9 "BERT + BiLSTM" column) | The paper's proposed model | Part 2 (uses `model.py`) |
+| **Comparison** (the paper's own Table 10 ablation) | Does BiLSTM actually help? | Part 3 |
+| **Apriori** (Section 3.2/3.3, Section 4.4) | Mines which causal factors co-occur | Part 4 (uses `causal_factors.py`) |
 
-All three of the paper's components now have a runnable counterpart. The
-one place this project necessarily deviates from the paper is *what feeds*
+All four of the paper's components have a runnable counterpart. The one
+place this project necessarily deviates from the paper is *what feeds*
 Apriori — see [Apriori](#apriori-mining-causal-factor-associations) below
 for exactly why and what that means for the results.
 
 ## Fidelity to the paper
 
-### BERT + BiLSTM (`model.py`, `train.py`)
+### BERT + BiLSTM (`model.py`)
 
 Taken directly from the paper's Table 9 ("Model parameter settings",
 "BERT + BiLSTM" column) and Section 4.1 / Figure 7 for the data split and
@@ -40,7 +43,7 @@ epoch count:
 | L2 weight decay | 0.05 | Table 9 |
 | L1 regularization | 5e-10 | Table 9 |
 | Gradient clipping (max norm) | 2.75 | Table 9 |
-| Batch size | 32 | Table 9 |
+| Batch size | 32 (effective, via gradient accumulation) | Table 9 |
 | Dropout layers | 2 (bracketing the BiLSTM) | Table 9 ("Dropout Layer: 2") |
 | Activation (BiLSTM branch) | Mish | Table 9 |
 | Optimizer | AdamW | Table 9 |
@@ -48,7 +51,7 @@ epoch count:
 | Epochs to convergence | ~20 | Figure 7 caption |
 | Train / val / test split | 70% / 15% / 15% | Section 4.1 |
 
-### Plain BERT baseline (`baseline_model.py`, `train_bert_baseline.py`)
+### Plain BERT baseline (`baseline_model.py`)
 
 Taken from Table 9's first column — the ablation the paper itself trains
 to show what BiLSTM adds (Table 10: 88.7% vs. 89.8% on the paper's data):
@@ -60,7 +63,7 @@ to show what BiLSTM adds (Table 10: 88.7% vs. 89.8% on the paper's data):
 | L2 weight decay | 0.05 | Table 9 |
 | L1 regularization | 1e-8 | Table 9 |
 | Gradient clipping (max norm) | 2.35 | Table 9 |
-| Batch size | 32 | Table 9 |
+| Batch size | 32 (effective, via gradient accumulation) | Table 9 |
 | Dropout layers | 3 | Table 9 |
 | Activation | GELU | Table 9 |
 | Optimizer | AdamW | Table 9 |
@@ -69,9 +72,6 @@ Table 9 names the hidden width (512) and dropout-layer count (3) but not
 their exact arrangement; `baseline_model.py`'s docstring explains the
 (reasonable, but not paper-specified) 2-dense-layer head this project built
 around those two numbers.
-
-Everything in both tables is also a CLI flag on the matching training
-script, in case you want to deviate further.
 
 **What's *not* reproduced, and why:**
 
@@ -128,16 +128,24 @@ Or with plain `pip`:
 pip install -r requirements.txt
 ```
 
-## Train BERT + BiLSTM
+## Run the notebook
 
 ```bash
-uv run train.py
-# or, without uv:
-python train.py
+jupyter notebook Thesis_Progress_Full_Pipeline.ipynb
+# or: uv run jupyter notebook Thesis_Progress_Full_Pipeline.ipynb
 ```
 
-Default hyperparameters (override any via CLI flags — run `python train.py -h`;
-see the fidelity table above for where each one comes from):
+Run it from inside this directory — it imports `dataset.py`, `model.py`,
+`baseline_model.py`, `causal_factors.py`, and `training_utils.py` as
+sibling modules. "Run All" executes, in order: dataset loading/splitting,
+plain-BERT baseline training + evaluation, BERT+BiLSTM training +
+evaluation, training-curve and confusion-matrix plots, the Table-10-style
+comparison, Apriori causal-factor mining, and a final four-part summary
+table. Outputs (`thesis_progress_summary.md`, `training_curves.png`,
+`confusion_matrices.png`, `comparison_table10_style.png`,
+`apriori_top_rules_by_lift.png`) are written to this directory.
+
+Config (top of the notebook):
 
 | Hyperparameter        | Default             |
 |------------------------|---------------------|
@@ -146,84 +154,32 @@ see the fidelity table above for where each one comes from):
 | BiLSTM hidden size     | 128 (x2 for bidirectional) |
 | BiLSTM layers          | 1                   |
 | Dropout                | 0.3                 |
-| Batch size             | 32                  |
-| Epochs                 | 20                  |
+| Batch size (per step)  | 8                   |
+| Gradient accumulation  | 4 steps (effective batch 32, matches Table 9) |
+| Epochs                 | 20 (`FAST_DEMO = True` drops this to 5 for a quick sanity check) |
 | Learning rate          | 1e-6 (AdamW)        |
 | L2 weight decay        | 0.05                |
-| L1 penalty             | 5e-10               |
-| Gradient clipping      | max norm 2.75       |
 | Train/val/test split   | 70% / 15% / 15% (stratified) |
-
-Training prints per-epoch loss/accuracy/macro-F1 for train and validation,
-saves the best checkpoint (by validation macro-F1) to `checkpoints/`, and
-finishes with a full `sklearn.classification_report` on the held-out test
-split.
 
 Note: the paper's learning rate (1e-6) is unusually low for BERT
 fine-tuning (typical recipes use 1e-5–5e-5) — its own Figure 7 shows this
 is compensated for by training ~20 epochs rather than the usual 3-4.
 
-## Train the plain-BERT baseline
-
-```bash
-uv run train_bert_baseline.py
-# or, without uv:
-python train_bert_baseline.py
-```
-
-Same dataset, same split (same `--seed`), same training loop as `train.py`
-— just without the BiLSTM stage, and with Table 9's "BERT" column
-hyperparameters as defaults (hidden width 512, dropout×3, L1 1e-8, gradient
-clip 2.35, GELU). Saves to `checkpoints_bert_baseline/` by default so it
-doesn't collide with `train.py`'s `checkpoints/`.
-
-## Compare BERT vs. BERT + BiLSTM
-
-Once both are trained:
-
-```bash
-uv run compare_models.py
-```
-
-Reloads both checkpoints, evaluates both on the *same* held-out test split
-(reconstructed from `--seed`/`--val-size`/`--test-size`, which default to
-matching both training scripts), and prints/saves a side-by-side accuracy /
-macro-F1 / weighted-F1 / per-class-F1 comparison to `comparison_report.md`
-— the same kind of ablation the paper itself runs in Table 10, just on this
-project's dataset instead of the paper's.
-
 ### Running out of GPU memory?
 
 The paper trained on an RTX 4060 Ti (8GB VRAM) at batch size 32. On a
-smaller GPU, `RuntimeError: CUDA out of memory` at that batch size is
-expected, not a bug. Two independent knobs help, on **both** training
-scripts:
+smaller GPU (e.g. a 4GB laptop GPU), `RuntimeError: CUDA out of memory` at
+that batch size is expected, not a bug. The notebook's defaults already
+address this:
 
 - **Mixed precision is on by default on CUDA** (roughly halves activation
-  memory); disable it with `--no-amp` only if you need exact fp32 training.
-- **Gradient accumulation** lets you shrink the per-step batch while keeping
-  the same *effective* batch size the paper used — e.g. on a 4GB GPU:
-
-  ```bash
-  uv run train.py --batch-size 4 --grad-accum-steps 8
-  uv run train_bert_baseline.py --batch-size 4 --grad-accum-steps 8
-  ```
-
-  This still averages gradients over 32 examples before each optimizer step
-  (matching Table 9), it just never holds more than 4 examples' activations
-  in memory at once. Drop `--batch-size` further (and raise
-  `--grad-accum-steps` to match) if it still doesn't fit; also try
-  `--max-length 64` to shrink attention memory further.
-
-## Predict
-
-```bash
-uv run predict.py --checkpoint-dir checkpoints \
-    "A bulk carrier ran aground after losing steering control in heavy weather."
-# or, without uv:
-python predict.py --checkpoint-dir checkpoints \
-    "A bulk carrier ran aground after losing steering control in heavy weather."
-```
+  memory).
+- **Gradient accumulation** (`grad_accum_steps = 4` on top of
+  `batch_size = 8`) keeps the same *effective* batch size the paper used
+  (32) while never holding more than 8 examples' activations in memory at
+  once. Lower `batch_size` further (and raise `grad_accum_steps` to match)
+  in the Config cell if it still doesn't fit; also try a smaller
+  `max_length` to shrink attention memory further.
 
 ## Apriori: mining causal-factor associations
 
@@ -257,48 +213,21 @@ all 32 categories' keyword lists.
 **This is not the paper's method — be upfront about that.** The paper's
 tags came from a human expert reading each report; keyword matching will
 miss paraphrased mentions (false negatives) and occasionally fire on
-incidental word choice (false positives). Treat `apriori_analysis.py`'s
+incidental word choice (false positives). Treat the notebook's Apriori
 output as a demonstration that the pipeline works end-to-end and a
 plausible-looking set of associations, not as a validated re-annotation of
 this dataset or a number to quote as reproducing the paper's Tables 5–8.
 
-Run it with:
-
-```bash
-uv run apriori_analysis.py
-# or narrow/widen the rule set:
-uv run apriori_analysis.py --min-support 0.01 --min-confidence 0.1 --output-csv rules.csv
-```
-
-Defaults (`--min-support 0.008 --min-confidence 0.15`) match the paper's own
-general-rule thresholds (Section 4.4); pass `--min-support 0.01
---min-confidence 0.1` to match its looser causal-chain thresholds instead.
-Output: how many reports got tagged with at least one factor, the frequent
-itemsets found, and the top rules sorted by confidence and by lift (mirroring
-the paper's Tables 5–8), optionally saved to CSV.
-
-## Notebooks
-
-`BERT_BiLSTM_Marine_Incident_Classification.ipynb` walks through the
-BERT + BiLSTM pipeline end-to-end in a single notebook (data
-loading/splitting, model definition, training loop, test evaluation,
-checkpoint saving, and inference) — handy for running on Colab/Kaggle/Jupyter
-with a GPU instead of the CLI scripts. It doesn't cover the plain-BERT
-baseline, comparison, or Apriori stage.
-
-`Thesis_Progress_Full_Pipeline.ipynb` covers all four components in one
-notebook — plain BERT baseline, BERT + BiLSTM, the Table-10-style comparison,
-and Apriori — by importing this project's own modules (`dataset.py`,
-`model.py`, `baseline_model.py`, `causal_factors.py`, `training_utils.py`),
-so run it from inside this directory. It has a `FAST_DEMO` config flag
-(5 epochs, batch size 8 with gradient accumulation to an effective batch of
-32 — sized for a 4GB laptop GPU) for a quick, genuine end-to-end check;
-flip it off for the paper-faithful 20-epoch run once you have time. Ends
-with one summary table covering all four components and a
-`thesis_progress_summary.md` export.
+The notebook's defaults (`min_support=0.008`, `min_confidence=0.15`) match
+the paper's own general-rule thresholds (Section 4.4); the paper's looser
+causal-chain thresholds are `min_support=0.01`, `min_confidence=0.1` if you
+want to widen the rule set.
 
 ## Files
 
+- `Thesis_Progress_Full_Pipeline.ipynb` — the notebook: all four components,
+  end to end, plus training curves, confusion matrices, the comparison
+  table, Apriori tables/charts, and a final summary.
 - `dataset.py` — loads the dataset from the Hub, cleans text, encodes labels,
   builds stratified train/val/test splits (with a fallback to a random split
   for any class too rare to stratify), and defines the `torch.Dataset`.
@@ -306,18 +235,8 @@ with one summary table covering all four components and a
 - `baseline_model.py` — the `BertClassifier` module (the paper's plain-BERT
   ablation).
 - `training_utils.py` — the shared training/evaluation loop (`run_epoch`) and
-  `set_seed`, used by both training scripts.
-- `train.py` — trains `BertBiLSTMClassifier`.
-- `train_bert_baseline.py` — trains `BertClassifier`.
-- `compare_models.py` — evaluates both trained checkpoints on the same test
-  split and reports the comparison.
+  `set_seed`, used by both models in the notebook.
 - `causal_factors.py` — keyword-based multi-label causal-factor tagging
   (see the Apriori section above for why this exists and its limits).
-- `apriori_analysis.py` — mines association rules from those tags with
-  Apriori (via `mlxtend`).
-- `predict.py` — inference on new narratives with a saved
-  `BertBiLSTMClassifier` checkpoint.
-- `BERT_BiLSTM_Marine_Incident_Classification.ipynb` — notebook version of
-  the BERT + BiLSTM pipeline.
 - `pyproject.toml` / `uv.lock` — project metadata and pinned dependencies for
   [uv](https://docs.astral.sh/uv/); `requirements.txt` covers plain `pip`.

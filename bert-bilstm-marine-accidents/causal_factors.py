@@ -7,8 +7,8 @@ factors co-occur. The MAIB dataset used in this project only ships a single
 *incident-type* label per report (Collision, Grounding/Stranding, ...) --
 there is no human causal-factor annotation to mine.
 
-To still run the paper's Apriori stage (apriori_analysis.py) end to end,
-this module heuristically re-derives multi-label causal-factor tags per
+To still run the paper's Apriori stage (see Thesis_Progress_Full_Pipeline.ipynb)
+end to end, this module heuristically re-derives multi-label causal-factor tags per
 report by keyword/phrase matching against the paper's own 32 category
 names. This is *not* the paper's method -- the paper's labels came from
 manual expert review of each report, not keyword matching -- so treat the

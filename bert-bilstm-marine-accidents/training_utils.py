@@ -1,6 +1,6 @@
-"""Training-loop utilities shared by train.py (BERT+BiLSTM) and
-train_bert_baseline.py (plain BERT), so both scripts run the exact same
-training/evaluation implementation and only differ in which model they build.
+"""Training-loop utilities shared by the plain-BERT and BERT+BiLSTM training
+cells in Thesis_Progress_Full_Pipeline.ipynb, so both models run the exact
+same training/evaluation implementation and only differ in which model is built.
 """
 import random
 
