@@ -16,9 +16,10 @@ dataset to classify UK MAIB marine incident narratives by incident type
 (Collision, Grounding/Stranding, Fire/Explosion, Accident to person(s),
 Damage/Loss of Equipment, ...).
 
-Includes CLI training/inference scripts (`train.py`, `predict.py`) and an
-equivalent Jupyter notebook (`BERT_BiLSTM_Marine_Incident_Classification.ipynb`).
-See that project's own [README](bert-bilstm-marine-accidents/README.md) for
-setup, usage, architecture details, and exactly which hyperparameters are
-confirmed from the paper's Table 9 versus this project's own dataset-driven
-choices.
+Runs entirely from one Jupyter notebook
+(`Thesis_Progress_Full_Pipeline.ipynb`) covering all three parts of the
+paper's method: plain-BERT baseline, BERT+BiLSTM, the Table-10-style
+comparison, and Apriori causal-factor mining. See that project's own
+[README](bert-bilstm-marine-accidents/README.md) for setup, usage,
+architecture details, and exactly which hyperparameters are confirmed from
+the paper's Table 9 versus this project's own dataset-driven choices.
