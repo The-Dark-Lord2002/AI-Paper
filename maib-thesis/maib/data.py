@@ -12,7 +12,6 @@ import re
 from pathlib import Path
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
 HF_DATASET = "baker-street/maib-incident-reports-5K"
 
@@ -71,20 +70,36 @@ def clean(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 
 
 def make_splits(df: pd.DataFrame, out_dir: str = "splits", seed: int = 42,
-                val_size: float = 0.15, test_size: float = 0.15) -> dict:
-    """تقسیم stratified سه‌گانه و ذخیره روی دیسک."""
+                val_size: float = 0.15, test_size: float = 0.15, min_count: int = 3) -> dict:
+    """تقسیم stratified سه‌گانه، کلاس به کلاس، و ذخیره روی دیسک.
+
+    train_test_split در sklearn روی کلاس‌های خیلی نادر (مثلاً ۴ نمونه) خطا می‌دهد. اینجا هر کلاس
+    جدا تقسیم می‌شود و هر کلاسی که حداقل min_count (≥۳) نمونه دارد، حداقل یک نمونه در val و یک
+    نمونه در test خواهد داشت. کلاس‌های کمتر از min_count حذف و در خروجی گزارش می‌شوند."""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    train_df, tmp = train_test_split(df, test_size=val_size + test_size,
-                                     stratify=df["label"], random_state=seed)
-    rel_test = test_size / (val_size + test_size)
-    val_df, test_df = train_test_split(tmp, test_size=rel_test,
-                                       stratify=tmp["label"], random_state=seed)
+    min_count = max(min_count, 3)
+    counts = df["label"].value_counts()
+    dropped = {l: int(n) for l, n in counts.items() if n < min_count}
+    df = df[~df["label"].isin(dropped)]
+
+    parts = {"train": [], "val": [], "test": []}
+    for lab, g in df.groupby("label", sort=True):
+        g = g.sample(frac=1.0, random_state=seed)
+        n = len(g)
+        n_test = max(1, round(n * test_size))
+        n_val = max(1, round(n * val_size))
+        parts["test"].append(g.iloc[:n_test])
+        parts["val"].append(g.iloc[n_test:n_test + n_val])
+        parts["train"].append(g.iloc[n_test + n_val:])
+    train_df, val_df, test_df = (pd.concat(parts[s]).sample(frac=1.0, random_state=seed)
+                                 for s in ("train", "val", "test"))
     labels = sorted(df["label"].unique())
     for name, d in [("train", train_df), ("val", val_df), ("test", test_df)]:
         d.to_json(out / f"{name}.jsonl", orient="records", lines=True, force_ascii=False)
     (out / "labels.json").write_text(json.dumps(labels, indent=2, ensure_ascii=False))
-    return {"train": len(train_df), "val": len(val_df), "test": len(test_df), "labels": labels}
+    return {"train": len(train_df), "val": len(val_df), "test": len(test_df), "labels": labels,
+            "dropped_classes": dropped}
 
 
 def load_splits(split_dir: str = "splits"):

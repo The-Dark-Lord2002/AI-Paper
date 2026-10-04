@@ -14,6 +14,8 @@ p = argparse.ArgumentParser()
 p.add_argument("--data", default=None, help="local .jsonl/.csv/.parquet (default: Hugging Face)")
 p.add_argument("--out", default="splits")
 p.add_argument("--seed", type=int, default=42)
+p.add_argument("--min_count", type=int, default=3,
+               help="classes with fewer reports are dropped (min 3: one each in train/val/test)")
 args = p.parse_args()
 
 df, stats = clean(load_raw(args.data))
@@ -29,7 +31,12 @@ for lab, n in dist.items():
 print(f"\n  imbalance ratio (max/min): {dist.max()/dist.min():.1f}")
 print(f"\n== Text length (words) ==\n{words.describe().round(1).to_string()}")
 
-split_info = make_splits(df, args.out, args.seed)
+split_info = make_splits(df, args.out, args.seed, min_count=args.min_count)
+if split_info["dropped_classes"]:
+    print(f"\n[warn] dropped classes with < {args.min_count} reports: {split_info['dropped_classes']}")
+rare = {l: int(n) for l, n in dist.items() if args.min_count <= n < 20}
+if rare:
+    print(f"[warn] very rare classes (test F1 will be noisy, consider --min_count 20): {rare}")
 print(f"\n== Splits saved to {args.out}/ ==  train={split_info['train']} "
       f"val={split_info['val']} test={split_info['test']}")
 
@@ -39,5 +46,6 @@ Path(args.out, "data_stats.json").write_text(json.dumps({
     "imbalance_ratio": float(dist.max() / dist.min()),
     "words": words.describe().round(2).to_dict(),
     "splits": {k: v for k, v in split_info.items() if k != "labels"},
+    "min_count": args.min_count,
     "split_seed": args.seed,
 }, indent=2, ensure_ascii=False))
