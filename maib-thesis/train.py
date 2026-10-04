@@ -20,6 +20,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
 from maib.data import load_splits
@@ -132,7 +133,8 @@ def run(cfg: dict) -> dict:
         model.train()
         running = 0.0
         opt.zero_grad(set_to_none=True)
-        for step, b in enumerate(tr, 1):
+        bar = tqdm(tr, desc=f"epoch {epoch}/{cfg['epochs']}", leave=False, mininterval=2)
+        for step, b in enumerate(bar, 1):
             y = b.pop("labels").to(device)
             b = {k: v.to(device) for k, v in b.items()}
             with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=amp):
@@ -140,6 +142,8 @@ def run(cfg: dict) -> dict:
             loss = criterion(logits, y) / cfg["grad_accum"]
             scaler.scale(loss).backward()
             running += loss.item() * cfg["grad_accum"]
+            if step % 20 == 0:
+                bar.set_postfix(loss=f"{running / step:.4f}")
             if step % cfg["grad_accum"] == 0 or step == len(tr):
                 scaler.unscale_(opt)
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
