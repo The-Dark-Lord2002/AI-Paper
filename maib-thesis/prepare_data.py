@@ -28,7 +28,8 @@ for k, v in stats.items():
 print("\n== Label distribution ==")
 for lab, n in dist.items():
     print(f"  {lab:32s} {n:5d}  ({100*n/len(df):5.1f}%)")
-print(f"\n  imbalance ratio (max/min): {dist.max()/dist.min():.1f}")
+kept = dist[dist >= max(args.min_count, 3)]          # کلاس‌هایی که بعد از --min_count باقی می‌مانند
+print(f"\n  imbalance ratio (max/min, {len(kept)} kept classes): {kept.max()/kept.min():.1f}")
 print(f"\n== Text length (words) ==\n{words.describe().round(1).to_string()}")
 
 split_info = make_splits(df, args.out, args.seed, min_count=args.min_count)
@@ -43,7 +44,7 @@ print(f"\n== Splits saved to {args.out}/ ==  train={split_info['train']} "
 Path(args.out, "data_stats.json").write_text(json.dumps({
     "cleaning": stats,
     "label_distribution": dist.to_dict(),
-    "imbalance_ratio": float(dist.max() / dist.min()),
+    "imbalance_ratio": float(kept.max() / kept.min()),
     "words": words.describe().round(2).to_dict(),
     "splits": {k: v for k, v in split_info.items() if k != "labels"},
     "min_count": args.min_count,
