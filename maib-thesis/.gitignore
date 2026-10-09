@@ -1,7 +1,3 @@
-splits/
-results/
-reports/
-checkpoints/
+data/
 __pycache__/
-*.pt
-results_*/
+.ipynb_checkpoints/
