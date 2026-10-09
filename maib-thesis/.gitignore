@@ -1,0 +1,7 @@
+splits/
+results/
+reports/
+checkpoints/
+__pycache__/
+*.pt
+results_*/
