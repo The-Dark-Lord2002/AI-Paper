@@ -91,6 +91,7 @@ const haveOS = has(OS_BERT) || has(OS_SVM);
 // ---------------------------------------------------------------- oversampling narrative (chosen from the numbers)
 const CAP = "Capsizing / Listing";
 const FA_DIGITS = (x) => String(x).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]).replace(".", "٫");
+const sgn4 = (x) => (Math.abs(x) < 0.00005 ? "±0.0000" : (x > 0 ? "+" : "−") + Math.abs(x).toFixed(4));
 const nFound = (n, c) => cfg(n).found[c].toFixed(1).replace(".0", "");
 const noiseOf = (a, b) => Math.max(cfg(a).macro_f1[1], cfg(b).macro_f1[1]);
 const beyond = (a, b) => Math.abs(delta(a, b)) > noiseOf(a, b);
@@ -105,15 +106,19 @@ function osCase() {          // which of the five possible outcomes the BERT ove
 function osParagraphs() {
   const out = [];
   if (has(OS_SVM)) {
-    out.push(`در SVM، oversampling مقدار Macro-F1 را از ${f3(cfg("tfidf_svm").macro_f1[0])} به ${f3(cfg(OS_SVM).macro_f1[0])} رساند (${sgn(delta("tfidf_svm", OS_SVM))}) و بازیابی رده‌های بحرانی ${sgn(delta("tfidf_svm", OS_SVM, "critical_recall"))} تغییر کرد. در رده‌ی واژگونی ${FA_DIGITS(nFound(OS_SVM, CAP))} از ${FA_DIGITS(D.support[CAP])} گزارش درست تشخیص داده شد (بدون oversampling: ${FA_DIGITS(nFound("tfidf_svm", CAP))}). SVM با یک بذر ثابت یک بار اجرا شد، پس برای این تفاوت برآورد نوسانی در دست نیست.`);
+    out.push(`در SVM، oversampling مقدار Macro-F1 را از ${cfg("tfidf_svm").macro_f1[0].toFixed(4)} به ${cfg(OS_SVM).macro_f1[0].toFixed(4)} رساند (${sgn4(delta("tfidf_svm", OS_SVM))}) و بازیابی رده‌های بحرانی ${sgn(delta("tfidf_svm", OS_SVM, "critical_recall"))} تغییر کرد. در رده‌ی واژگونی ${FA_DIGITS(nFound(OS_SVM, CAP))} از ${FA_DIGITS(D.support[CAP])} گزارش درست تشخیص داده شد (بدون oversampling: ${FA_DIGITS(nFound("tfidf_svm", CAP))}). SVM با یک بذر ثابت یک بار اجرا شد، پس برای این تفاوت برآورد نوسانی در دست نیست.`);
   }
   if (!has(OS_BERT)) {
     out.push("اجرای oversampling روی مدل پیشنهادی (BERT + BiLSTM + Attention) هنوز در جریان است و نتیجه‌ی آن پس از پایان اجرا اضافه می‌شود.");
     return out;
   }
   const oneSeed = cfg(OS_BERT).seeds < 2;
-  const rep = FA_DIGITS((D.summary.split.train / D.labels.length / D.train_support[CAP]).toFixed(1));
+  const rep = FA_DIGITS((D.summary.split.train / D.labels.length / D.train_support[CAP]).toFixed(2));
   out.push(`در مدل پیشنهادی${oneSeed ? " (فقط ۱ بذر؛ نتیجه‌ی اولیه)" : ""}، oversampling مقدار Macro-F1 را به ${pm(cfg(OS_BERT).macro_f1)} رساند: ${sgn(delta(att, OS_BERT))} نسبت به ce بدون اقدام (${verdictFa(att, OS_BERT)}) و ${sgn(delta(wce, OS_BERT))} نسبت به wce (${verdictFa(wce, OS_BERT)}). در رده‌ی واژگونی به‌طور میانگین ${FA_DIGITS(nFound(OS_BERT, CAP))} از ${FA_DIGITS(D.support[CAP])} گزارش درست تشخیص داده شد (ce: ${FA_DIGITS(nFound(att, CAP))}، wce: ${FA_DIGITS(nFound(wce, CAP))}).`);
+  // why oversampling behaves like wce: expected draws per epoch of a report = N / (K * n_c) = its wce weight
+  const big = D.labels.reduce((a, c) => (D.train_support[c] > D.train_support[a] ? c : a));
+  const unseen = Math.round(100 * Math.exp(-D.summary.split.train / D.labels.length / D.train_support[big]));
+  out.push(`تفسیر: در امید ریاضی، oversampling همان وزن‌دهی wce را اعمال می‌کند. هر گزارش واژگونی در هر epoch به‌طور میانگین ${rep} بار دیده می‌شود که دقیقاً برابر وزن wce همین رده است. تفاوت دو روش در تصادفی بودن نمونه‌گیری است: wce هر گزارش را در هر epoch دقیقاً یک بار می‌بیند، ولی با oversampling در هر epoch حدود ${FA_DIGITS(unseen)}٪ گزارش‌های پرتکرارترین رده اصلاً دیده نمی‌شوند و گزارش‌های کمیاب تکراری‌اند.`);
   const memo = `یک توضیح محتمل که هنوز آزموده نشده: هر یک از ${FA_DIGITS(D.train_support[CAP])} گزارش واژگونی در داده‌ی آموزش در هر epoch حدود ${rep} بار تکرار می‌شود و مدل ممکن است به‌جای یادگیری الگو، همین گزارش‌ها را حفظ کند. wce همین جبران را بدون تکرار داده انجام می‌دهد.`;
   // rare-class recall went up -> the loss is elsewhere (a trade-off), not memorisation of the repeated reports
   const why = () => delta(att, OS_BERT, "critical_recall") > 0
@@ -245,7 +250,7 @@ C.push(P(`آنتروپی متقاطع وزن‌دار (wce) بیشترین به�
 C.push(H2("۵-۴. Oversampling"));
 if (haveOS) {
   const rows = [];
-  if (has(OS_SVM)) rows.push(["TF-IDF + SVM", f3(cfg("tfidf_svm").macro_f1[0]), f3(cfg(OS_SVM).macro_f1[0]), sgn(delta("tfidf_svm", OS_SVM)), sgn(delta("tfidf_svm", OS_SVM, "critical_recall"))]);
+  if (has(OS_SVM)) rows.push(["TF-IDF + SVM", cfg("tfidf_svm").macro_f1[0].toFixed(4), cfg(OS_SVM).macro_f1[0].toFixed(4), sgn4(delta("tfidf_svm", OS_SVM)), sgn(delta("tfidf_svm", OS_SVM, "critical_recall"))]);
   if (has(OS_BERT)) rows.push(["BERT + BiLSTM + Attention", pm(cfg(att).macro_f1), pm(cfg(OS_BERT).macro_f1), sgn(delta(att, OS_BERT)), sgn(delta(att, OS_BERT, "critical_recall"))]);
   C.push(table(["مدل", "بدون oversampling", "با oversampling", "تغییر Macro-F1", "تغییر بازیابی بحرانی"], rows, [2700, 1800, 1800, 1600, 1738]));
   C.push(SPACER());
@@ -257,10 +262,11 @@ if (haveOS) {
 C.push(H2("۵-۵. بازیابی هر رده"));
 const showCfg = ["tfidf_svm", OS_SVM, "bert + ce", ref, att, wce, OS_BERT].filter(has);
 const byRare = [...D.labels].sort((a, b) => D.support[a] - D.support[b]);
-C.push(table(["رده (تعداد در آزمون)", ...showCfg.map((n) => FA_NAME[n].replace(" (بازتولید مرجع)", "").replace("BERT + BiLSTM + Attention", "+ Attention"))],
+const SHORT_COL = { "tfidf_svm": "SVM", [OS_SVM]: "SVM + OS", "bert + ce": "BERT", [ref]: "+ BiLSTM", [att]: "+ Att", [wce]: "+ Att + wce", [OS_BERT]: "+ Att + OS" };
+C.push(table(["رده (تعداد در آزمون)", ...showCfg.map((n) => SHORT_COL[n])],
   byRare.map((c) => [`${CLASS_FA[c]} (${D.support[c]})`, ...showCfg.map((n) => cfg(n).found[c].toFixed(1).replace(".0", ""))]),
   [2838, ...showCfg.map(() => Math.floor(6800 / showCfg.length))]));
-C.push(CAPTION("جدول ۲. تعداد گزارش‌های درست‌تشخیص‌داده‌شده‌ی هر رده (میانگین بذرها). نادرترین رده بالاست."));
+C.push(CAPTION(`جدول ۲. تعداد گزارش‌های درست‌تشخیص‌داده‌شده‌ی هر رده (میانگین بذرها). نادرترین رده بالاست.${has(OS_SVM) || has(OS_BERT) ? " OS = oversampling؛ Att = BERT + BiLSTM + Attention." : ""}`));
 C.push(P("با ۱۵ گزارش واژگونی در مجموعه‌ی آزمون، تفاوت ۱ تا ۲ گزارش بین مدل‌های BERT (۱۰٫۵ تا ۱۲) قابل اتکا نیست. آنچه قطعی است برتری همه‌ی مدل‌های BERT بر SVM در این رده است (۱۰ از ۱۵)."));
 C.push(...figure(path.join(REPO, "reports", "per_class_recall.png"), "شکل ۳. بازیابی هر رده برای هر پیکربندی (نادرترین رده در چپ)", 640));
 

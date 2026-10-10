@@ -16,10 +16,11 @@ const REF = "bert_bilstm + ce", ATT = "bert_bilstm_att + ce", WCE = "bert_bilstm
 const OS_BERT = "bert_bilstm_att + ce [oversample]", OS_SVM = "tfidf_svm_oversample";
 
 // oversampling verdict for slide 10, chosen from the numbers (same rules as the report)
+const sgn4 = (x) => (Math.abs(x) < 0.00005 ? "±0.0000" : (x > 0 ? "+" : "−") + Math.abs(x).toFixed(4));
 const beyond = (a, b) => Math.abs(d(a, b)) > Math.max(cfg(a).macro_f1[1], cfg(b).macro_f1[1]);
 function osSlideText() {
   const parts = [];
-  if (has(OS_SVM)) parts.push(`SVM: ${sgn(d("tfidf_svm", OS_SVM))} Macro-F1 با oversampling (تک‌اجرا).`);
+  if (has(OS_SVM)) parts.push(`SVM: ${sgn4(d("tfidf_svm", OS_SVM))} Macro-F1 با oversampling (تک‌اجرا).`);
   if (!has(OS_BERT)) return parts.concat("اجرای BERT هنوز در جریان است.").join(" ");
   const upCe = beyond(ATT, OS_BERT) && d(ATT, OS_BERT) > 0;
   let c;
@@ -203,7 +204,7 @@ T(s, "BERT + BiLSTM + Attention", { x: 0.7, y: 1.3, w: 4.0, h: 0.4, fontSize: 16
 T(s, "انتخاب هر گزارش با احتمال ۱ تقسیم بر اندازه‌ی رده؛ طول epoch ثابت؛ با ce (نه wce)", { x: 0.7, y: 1.72, w: 4.0, h: 0.95, fontSize: 13 });
 if (has(OS_BERT) || has(OS_SVM)) {
   const rows = [];
-  if (has(OS_SVM)) rows.push({ cells: ["TF-IDF + SVM", f3(cfg("tfidf_svm").macro_f1[0]), f3(cfg(OS_SVM).macro_f1[0]), sgn(d("tfidf_svm", OS_SVM)), "—"] });
+  if (has(OS_SVM)) rows.push({ cells: ["TF-IDF + SVM", cfg("tfidf_svm").macro_f1[0].toFixed(4), cfg(OS_SVM).macro_f1[0].toFixed(4), sgn4(d("tfidf_svm", OS_SVM)), "—"] });
   if (has(OS_BERT)) rows.push({ hi: true, cells: ["+ Attention", pm(cfg(ATT).macro_f1), pm(cfg(OS_BERT).macro_f1), sgn(d(ATT, OS_BERT)), sgn(d(WCE, OS_BERT))] });
   table(s, ["مدل", "بدون oversampling", "با oversampling", "تغییر", "در برابر wce"], rows, { x: 0.5, y: 2.95, w: 9.0, colW: [2.0, 2.0, 2.0, 1.5, 1.5], fontSize: 13, rowH: 0.36 });
   T(s, osSlideText(), { x: 0.5, y: 4.15, w: 9.0, h: 0.9, fontSize: 14 });
