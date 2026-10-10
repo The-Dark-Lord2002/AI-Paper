@@ -1,0 +1,91 @@
+class,rank,word,attention
+Accident to person(s),1,crewmember,5.449
+Accident to person(s),2,fell,5.016
+Accident to person(s),3,member,4.724
+Accident to person(s),4,crew,3.859
+Accident to person(s),5,sustained,3.016
+Accident to person(s),6,passenger,2.859
+Accident to person(s),7,vessel,2.672
+Accident to person(s),8,resulting,2.418
+Accident to person(s),9,injury,2.077
+Accident to person(s),10,fractured,1.876
+Capsizing / Listing,1,capsized,1.058
+Capsizing / Listing,2,vessel,0.35
+Capsizing / Listing,3,hit,0.346
+Capsizing / Listing,4,entered,0.341
+Capsizing / Listing,5,crewmember,0.176
+Capsizing / Listing,6,boat,0.149
+Capsizing / Listing,7,resulting,0.138
+Capsizing / Listing,8,feathering,0.129
+Capsizing / Listing,9,lost,0.126
+Capsizing / Listing,10,alongside,0.116
+Collision,1,vessel,2.448
+Collision,2,collided,0.617
+Collision,3,pilot,0.555
+Collision,4,damage,0.554
+Collision,5,manoeuvring,0.492
+Collision,6,resulting,0.491
+Collision,7,tanker,0.476
+Collision,8,contact,0.444
+Collision,9,moored,0.441
+Collision,10,sailing,0.392
+Contact,1,contact,2.399
+Contact,2,vessel,1.783
+Contact,3,damage,0.855
+Contact,4,quayside,0.618
+Contact,5,resulting,0.528
+Contact,6,manoeuvring,0.499
+Contact,7,struck,0.468
+Contact,8,lock,0.447
+Contact,9,cargo,0.396
+Contact,10,object,0.325
+Damage / Loss Of Equipment,1,solas,13.138
+Damage / Loss Of Equipment,2,ladder,9.035
+Damage / Loss Of Equipment,3,pilot,7.104
+Damage / Loss Of Equipment,4,conform,3.919
+Damage / Loss Of Equipment,5,regulations,3.736
+Damage / Loss Of Equipment,6,vessel,3.283
+Damage / Loss Of Equipment,7,did,3.259
+Damage / Loss Of Equipment,8,rigged,2.722
+Damage / Loss Of Equipment,9,ship,2.087
+Damage / Loss Of Equipment,10,container,1.7
+Fire / Explosion,1,vessel,1.173
+Fire / Explosion,2,engine,0.693
+Fire / Explosion,3,resulting,0.479
+Fire / Explosion,4,caught,0.467
+Fire / Explosion,5,suffered,0.453
+Fire / Explosion,6,smoke,0.432
+Fire / Explosion,7,damage,0.375
+Fire / Explosion,8,experienced,0.36
+Fire / Explosion,9,crew,0.348
+Fire / Explosion,10,extinguish,0.342
+Flooding / Foundering,1,ingress,1.556
+Flooding / Foundering,2,water,1.396
+Flooding / Foundering,3,vessel,0.9
+Flooding / Foundering,4,taking,0.703
+Flooding / Foundering,5,started,0.56
+Flooding / Foundering,6,suffered,0.279
+Flooding / Foundering,7,motor,0.208
+Flooding / Foundering,8,began,0.176
+Flooding / Foundering,9,onboard,0.175
+Flooding / Foundering,10,cruiser,0.164
+Grounding / Stranding,1,vessel,3.313
+Grounding / Stranding,2,grounded,2.199
+Grounding / Stranding,3,ran,1.65
+Grounding / Stranding,4,aground,1.253
+Grounding / Stranding,5,damage,0.781
+Grounding / Stranding,6,yacht,0.612
+Grounding / Stranding,7,whilst,0.565
+Grounding / Stranding,8,ingress,0.541
+Grounding / Stranding,9,sailing,0.516
+Grounding / Stranding,10,sandbank,0.497
+Loss Of Control,1,vessel,4.071
+Loss Of Control,2,failure,3.682
+Loss Of Control,3,engine,3.348
+Loss Of Control,4,fouled,2.602
+Loss Of Control,5,towed,1.741
+Loss Of Control,6,suffered,1.711
+Loss Of Control,7,experienced,1.415
+Loss Of Control,8,propulsion,1.11
+Loss Of Control,9,port,1.06
+Loss Of Control,10,propeller,1.05
