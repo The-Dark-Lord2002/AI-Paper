@@ -11,6 +11,7 @@ run the same command again and it continues where it stopped.
   python step4_run_experiments.py --batch-size 32     # bigger GPU (Kaggle / Colab): same result, faster
   python step4_run_experiments.py --seeds 1 2         # fewer seeds if short on time
   python step4_run_experiments.py --paper-settings    # optional: reference model with the paper's lr = 1e-6
+  python step4_run_experiments.py --oversample        # oversampling runs (config.OVERSAMPLE_EXPERIMENTS)
 """
 import argparse
 from pathlib import Path
@@ -23,10 +24,14 @@ parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE)
 parser.add_argument("--seeds", type=int, nargs="+", default=config.SEEDS)
 parser.add_argument("--paper-settings", action="store_true",
                     help="train only bert_bilstm + ce with the reference paper's settings (config.PAPER_SETTINGS)")
+parser.add_argument("--oversample", action="store_true",
+                    help="train config.OVERSAMPLE_EXPERIMENTS with rare classes shown more often")
 args = parser.parse_args()
 
 if args.paper_settings:
     experiments, extra = [("bert_bilstm", "ce")], config.PAPER_SETTINGS
+elif args.oversample:
+    experiments, extra = config.OVERSAMPLE_EXPERIMENTS, dict(oversample=True, tag="oversample")
 else:
     experiments, extra = config.EXPERIMENTS, {}
 

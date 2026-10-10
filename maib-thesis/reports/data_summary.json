@@ -1,0 +1,51 @@
+{
+  "raw_reports": 5768,
+  "conflicting_duplicates_removed": 0,
+  "exact_duplicates_removed": 1,
+  "clean_reports": 5767,
+  "class_counts": {
+    "Accident to person(s)": 1662,
+    "Damage / Loss Of Equipment": 1374,
+    "Loss Of Control": 823,
+    "Grounding / Stranding": 561,
+    "Contact": 406,
+    "Collision": 326,
+    "Fire / Explosion": 324,
+    "Flooding / Foundering": 187,
+    "Capsizing / Listing": 99,
+    "Hull Failure": 3,
+    "Non-accidental Event": 2
+  },
+  "dropped_classes": {
+    "Hull Failure": 3,
+    "Non-accidental Event": 2
+  },
+  "kept_classes": 9,
+  "imbalance_ratio": 16.8,
+  "split": {
+    "train": 4033,
+    "val": 864,
+    "test": 865
+  },
+  "test_reports_per_class": {
+    "Accident to person(s)": 250,
+    "Damage / Loss Of Equipment": 206,
+    "Loss Of Control": 124,
+    "Grounding / Stranding": 84,
+    "Contact": 61,
+    "Collision": 49,
+    "Fire / Explosion": 48,
+    "Flooding / Foundering": 28,
+    "Capsizing / Listing": 15
+  },
+  "words_per_report": {
+    "count": 5762.0,
+    "mean": 66.8,
+    "std": 36.6,
+    "min": 6.0,
+    "25%": 41.0,
+    "50%": 59.0,
+    "75%": 84.0,
+    "max": 368.0
+  }
+}

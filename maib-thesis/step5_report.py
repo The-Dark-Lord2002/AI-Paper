@@ -33,8 +33,8 @@ if not runs:
 
 def config_name(run):
     """'bert_bilstm_att + focal' - the same name for all seeds of one configuration."""
-    if run["model"] == "tfidf_svm":
-        return "tfidf_svm"
+    if run["model"].startswith("tfidf"):
+        return run["model"]
     name = f"{run['model']} + {run['loss']}"
     return name + (f" [{run['tag']}]" if run.get("tag") else "")
 
@@ -43,7 +43,7 @@ groups = defaultdict(list)
 for run in runs:
     groups[config_name(run)].append(run)
 
-order = ["tfidf_svm"] + [f"{m} + {l}" for m, l in config.EXPERIMENTS]
+order = ["tfidf_svm", "tfidf_svm_oversample"] + [f"{m} + {l}" for m, l in config.EXPERIMENTS]
 names = [n for n in order if n in groups] + sorted(n for n in groups if n not in order)
 
 labels = runs[0]["labels"]
@@ -82,7 +82,12 @@ def compare(base, other):
     d_f1 = stats[other]["macro_f1"][0] - stats[base]["macro_f1"][0]
     d_crit = stats[other]["critical_recall"][0] - stats[base]["critical_recall"][0]
     noise = max(stats[base]["macro_f1"][1], stats[other]["macro_f1"][1])
-    verdict = "within seed-to-seed noise" if abs(d_f1) <= noise else "larger than seed-to-seed noise"
+    if len(groups[base]) < 2 and len(groups[other]) < 2:
+        verdict = "single runs, no seed-to-seed noise available"
+    elif abs(d_f1) <= noise:
+        verdict = "within seed-to-seed noise"
+    else:
+        verdict = "larger than seed-to-seed noise"
     return (f"- {other} vs {base}: macro-F1 {d_f1:+.3f}, critical recall {d_crit:+.3f} "
             f"(seed std {noise:.3f}: {verdict})")
 
@@ -97,6 +102,11 @@ questions = [
     "",
     "RQ2 - Which imbalance treatment helps? (proposal step 4)",
     *[compare("bert_bilstm_att + ce", f"bert_bilstm_att + {loss}") for loss in ("wce", "focal", "cb")],
+    "",
+    "Oversampling the training set (supervisor's request)",
+    compare("tfidf_svm", "tfidf_svm_oversample"),
+    compare("bert_bilstm_att + ce", "bert_bilstm_att + ce [oversample]"),
+    compare("bert_bilstm_att + wce", "bert_bilstm_att + ce [oversample]"),
 ]
 
 with open(reports / "main_table.md", "w") as f:
@@ -132,7 +142,7 @@ fig.tight_layout()
 fig.savefig(reports / "per_class_recall.png", dpi=150)
 
 # ----------------------------------------------------------------------------- confusion matrix
-bert_names = [n for n in names if n != "tfidf_svm"]
+bert_names = [n for n in names if not n.startswith("tfidf")]
 if bert_names:
     best = max(bert_names, key=lambda n: stats[n]["macro_f1"][0])
     counts = np.sum([np.array(r["test"]["confusion_matrix"]) for r in groups[best]], axis=0)
