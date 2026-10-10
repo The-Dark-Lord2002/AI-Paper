@@ -15,6 +15,27 @@ const S = D.summary;
 const REF = "bert_bilstm + ce", ATT = "bert_bilstm_att + ce", WCE = "bert_bilstm_att + wce";
 const OS_BERT = "bert_bilstm_att + ce [oversample]", OS_SVM = "tfidf_svm_oversample";
 
+// oversampling verdict for slide 10, chosen from the numbers (same rules as the report)
+const beyond = (a, b) => Math.abs(d(a, b)) > Math.max(cfg(a).macro_f1[1], cfg(b).macro_f1[1]);
+function osSlideText() {
+  const parts = [];
+  if (has(OS_SVM)) parts.push(`SVM: ${sgn(d("tfidf_svm", OS_SVM))} Macro-F1 با oversampling (تک‌اجرا).`);
+  if (!has(OS_BERT)) return parts.concat("اجرای BERT هنوز در جریان است.").join(" ");
+  const upCe = beyond(ATT, OS_BERT) && d(ATT, OS_BERT) > 0;
+  let c;
+  if (!beyond(WCE, OS_BERT)) c = upCe ? "BERT: oversampling هم‌سطح wce شد؛ دو روش متوازن‌سازی هم‌ارزند و wce ساده‌تر است."
+    : "BERT: oversampling بین ce و wce است و از هیچ‌کدام به‌روشنی جدا نیست؛ wce همچنان تنها بهبود قطعی است.";
+  else if (d(WCE, OS_BERT) > 0) c = "BERT: oversampling از wce هم بهتر شد؛ بهترین پیکربندی فعلی.";
+  else {
+    const why = d(ATT, OS_BERT, "critical_recall") > 0
+      ? `بازیابی رده‌های بحرانی ${sgn(d(ATT, OS_BERT, "critical_recall"))}، ولی پیش‌بینی نادرست بیشتر در همین رده‌ها.`
+      : "فرضیه: حفظ‌کردن گزارش‌های کمیابِ تکراری.";
+    c = (upCe ? "BERT: oversampling کمک کرد، ولی کمتر از wce. " : "BERT: oversampling کمکی نکرد و از wce ضعیف‌تر بود. ") + why;
+  }
+  if (cfg(OS_BERT).seeds < 2) c += " (۱ بذر؛ نتیجه‌ی اولیه)";
+  return parts.concat(c).join(" ");
+}
+
 // ---------------------------------------------------------------- palette (maritime: navy + sea teal, safety orange accent)
 const NAVY = "14213D", TEAL = "0F7C8C", ORANGE = "E36414", INK = "1B1B1B", MUTED = "5B6770", TINT = "EEF3F6", ICE = "CFE3EA", WHITE = "FFFFFF";
 const FONT = "Arial";
@@ -91,8 +112,8 @@ s.addNotes("سه عدد اصلی: خط مبنای کلاسیک ۰٫۸۸۵، با
 // ================================================================ 3. last meeting's tasks
 s = pres.addSlide({ masterName: "CONTENT" });
 title(s, "وظایف جلسه‌ی قبل");
-[[ "۱. نتیجه و گزارش کامل", [`${D.per_run.length} اجرای آموزش BERT و خط مبنای SVM`, "۶ پیکربندی × ۲ بذر، تنظیمات یکسان", "جدول‌ها، تحلیل attention و تحلیل خطا", "گزارش کامل Word پیوست است"]],
-  [ "۲. بررسی oversampling", ["روی SVM و روی روش پیشنهادی", "فقط داده‌ی آموزش؛ آزمون دست‌نخورده", "مقایسه با بدون اقدام و با wce", has(OS_BERT) ? "انجام شد؛ نتایج در اسلاید ۱۰" : "پیاده‌سازی شد؛ اجرا در جریان"]],
+[[ "۱. نتیجه و گزارش کامل", [`${D.per_run.filter((r) => !r.run.includes("oversample")).length} اجرای آموزش BERT و خط مبنای SVM`, "۶ پیکربندی × ۲ بذر، تنظیمات یکسان", "جدول‌ها، تحلیل attention و تحلیل خطا", "گزارش کامل Word پیوست است"]],
+  [ "۲. بررسی oversampling", ["روی SVM و روی روش پیشنهادی", "فقط داده‌ی آموزش؛ آزمون دست‌نخورده", "مقایسه با بدون اقدام و با wce", has(OS_BERT) ? "انجام شد؛ نتایج در اسلاید ۱۰" : has(OS_SVM) ? "SVM انجام شد؛ BERT در جریان" : "پیاده‌سازی شد؛ اجرا در جریان"]],
 ].forEach(([h, items], i) => {
   const x = i === 0 ? 5.1 : 0.5;
   card(s, x, 1.25, 4.4, 3.6);
@@ -185,7 +206,7 @@ if (has(OS_BERT) || has(OS_SVM)) {
   if (has(OS_SVM)) rows.push({ cells: ["TF-IDF + SVM", f3(cfg("tfidf_svm").macro_f1[0]), f3(cfg(OS_SVM).macro_f1[0]), sgn(d("tfidf_svm", OS_SVM)), "—"] });
   if (has(OS_BERT)) rows.push({ hi: true, cells: ["+ Attention", pm(cfg(ATT).macro_f1), pm(cfg(OS_BERT).macro_f1), sgn(d(ATT, OS_BERT)), sgn(d(WCE, OS_BERT))] });
   table(s, ["مدل", "بدون oversampling", "با oversampling", "تغییر", "در برابر wce"], rows, { x: 0.5, y: 2.95, w: 9.0, colW: [2.0, 2.0, 2.0, 1.5, 1.5], fontSize: 13, rowH: 0.36 });
-  T(s, "<<OS_SLIDE_TEXT>>", { x: 0.5, y: 4.15, w: 9.0, h: 0.9, fontSize: 14 });
+  T(s, osSlideText(), { x: 0.5, y: 4.15, w: 9.0, h: 0.9, fontSize: 14 });
 } else {
   T(s, "فقط داده‌ی آموزش بازنمونه‌گیری می‌شود؛ اعتبارسنجی و آزمون دست‌نخورده‌اند. نتایج پس از پایان اجرا اضافه می‌شود.", { x: 0.5, y: 3.1, w: 9.0, h: 0.8, fontSize: 15 });
 }

@@ -87,6 +87,49 @@ const S = D.summary, ref = "bert_bilstm + ce", att = "bert_bilstm_att + ce", wce
 const best = cfg(D.best_config);
 const OS_BERT = "bert_bilstm_att + ce [oversample]", OS_SVM = "tfidf_svm_oversample";
 const haveOS = has(OS_BERT) || has(OS_SVM);
+
+// ---------------------------------------------------------------- oversampling narrative (chosen from the numbers)
+const CAP = "Capsizing / Listing";
+const FA_DIGITS = (x) => String(x).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]).replace(".", "٫");
+const nFound = (n, c) => cfg(n).found[c].toFixed(1).replace(".0", "");
+const noiseOf = (a, b) => Math.max(cfg(a).macro_f1[1], cfg(b).macro_f1[1]);
+const beyond = (a, b) => Math.abs(delta(a, b)) > noiseOf(a, b);
+const verdictFa = (a, b) => (cfg(a).seeds < 2 && cfg(b).seeds < 2 ? "تک‌اجرا، بدون برآورد نوسان"
+  : beyond(a, b) ? "بزرگ‌تر از نوسان بذرها" : "در حد نوسان بذرها");
+function osCase() {          // which of the five possible outcomes the BERT oversampling run produced
+  const upCe = beyond(att, OS_BERT) && delta(att, OS_BERT) > 0;
+  if (!beyond(wce, OS_BERT)) return upCe ? "equal_wce" : "between";
+  if (delta(wce, OS_BERT) > 0) return "better_wce";
+  return upCe ? "helped_less" : "no_help";
+}
+function osParagraphs() {
+  const out = [];
+  if (has(OS_SVM)) {
+    out.push(`در SVM، oversampling مقدار Macro-F1 را از ${f3(cfg("tfidf_svm").macro_f1[0])} به ${f3(cfg(OS_SVM).macro_f1[0])} رساند (${sgn(delta("tfidf_svm", OS_SVM))}) و بازیابی رده‌های بحرانی ${sgn(delta("tfidf_svm", OS_SVM, "critical_recall"))} تغییر کرد. در رده‌ی واژگونی ${FA_DIGITS(nFound(OS_SVM, CAP))} از ${FA_DIGITS(D.support[CAP])} گزارش درست تشخیص داده شد (بدون oversampling: ${FA_DIGITS(nFound("tfidf_svm", CAP))}). SVM با یک بذر ثابت یک بار اجرا شد، پس برای این تفاوت برآورد نوسانی در دست نیست.`);
+  }
+  if (!has(OS_BERT)) {
+    out.push("اجرای oversampling روی مدل پیشنهادی (BERT + BiLSTM + Attention) هنوز در جریان است و نتیجه‌ی آن پس از پایان اجرا اضافه می‌شود.");
+    return out;
+  }
+  const oneSeed = cfg(OS_BERT).seeds < 2;
+  const rep = FA_DIGITS((D.summary.split.train / D.labels.length / D.train_support[CAP]).toFixed(1));
+  out.push(`در مدل پیشنهادی${oneSeed ? " (فقط ۱ بذر؛ نتیجه‌ی اولیه)" : ""}، oversampling مقدار Macro-F1 را به ${pm(cfg(OS_BERT).macro_f1)} رساند: ${sgn(delta(att, OS_BERT))} نسبت به ce بدون اقدام (${verdictFa(att, OS_BERT)}) و ${sgn(delta(wce, OS_BERT))} نسبت به wce (${verdictFa(wce, OS_BERT)}). در رده‌ی واژگونی به‌طور میانگین ${FA_DIGITS(nFound(OS_BERT, CAP))} از ${FA_DIGITS(D.support[CAP])} گزارش درست تشخیص داده شد (ce: ${FA_DIGITS(nFound(att, CAP))}، wce: ${FA_DIGITS(nFound(wce, CAP))}).`);
+  const memo = `یک توضیح محتمل که هنوز آزموده نشده: هر یک از ${FA_DIGITS(D.train_support[CAP])} گزارش واژگونی در داده‌ی آموزش در هر epoch حدود ${rep} بار تکرار می‌شود و مدل ممکن است به‌جای یادگیری الگو، همین گزارش‌ها را حفظ کند. wce همین جبران را بدون تکرار داده انجام می‌دهد.`;
+  // rare-class recall went up -> the loss is elsewhere (a trade-off), not memorisation of the repeated reports
+  const why = () => delta(att, OS_BERT, "critical_recall") > 0
+    ? `بازیابی رده‌های بحرانی بالا رفت (${sgn(delta(att, OS_BERT, "critical_recall"))})، ولی precision همین رده‌ها ${sgn(delta(att, OS_BERT, "critical_precision"))} تغییر کرد؛ یعنی مدل این رده‌ها را بیشتر پیش‌بینی می‌کند و بخشی از این پیش‌بینی‌ها نادرست است. oversampling مرز تصمیم را بیش از اندازه به سمت رده‌های کمیاب می‌برد.`
+    : memo;
+  let concl = {
+    equal_wce: "نتیجه: oversampling نسبت به ce بدون اقدام کمک کرد و به همان سطح wce رسید. پس در این داده تکرار نمونه‌ها و وزن‌دادن به خطا دو راه هم‌ارز برای جبران نامتوازنی‌اند. wce ساده‌تر است، چون داده‌ی آموزش را تغییر نمی‌دهد.",
+    between: "نتیجه: oversampling بین ce و wce قرار گرفت و از هیچ‌کدام به‌روشنی جدا نیست. با این تعداد بذر نمی‌توان گفت oversampling کمک کرده است؛ wce همچنان تنها روشی است که بهبودی بزرگ‌تر از نوسان بذرها داده است.",
+    better_wce: "نتیجه: oversampling از wce هم بهتر بود و بهترین پیکربندی فعلی است.",
+    helped_less: "نتیجه: oversampling نسبت به ce بدون اقدام کمک کرد، ولی کمتر از wce. " + why(),
+    no_help: "نتیجه: oversampling نسبت به ce بدون اقدام کمکی نکرد و از wce ضعیف‌تر بود. " + why(),
+  }[osCase()];
+  if (oneSeed) concl += " چون فقط یک بذر اجرا شده، این نتیجه پس از اجرای بذر دوم قطعی می‌شود.";
+  out.push(concl);
+  return out;
+}
 const nRuns = D.per_run.length;
 const at5 = D.best_epoch_counts["5"] || 0;
 
@@ -111,8 +154,9 @@ C.push(P(`در این مرحله ${nRuns} اجرای آموزش مدل‌های 
 C.push(BULLET(`همه‌ی مدل‌های مبتنی بر BERT از خط مبنای کلاسیک بهترند: Macro-F1 از **${f3(cfg("tfidf_svm").macro_f1[0])}** برای TF-IDF + SVM به **${f3(cfg("bert + ce").macro_f1[0])} تا ${f3(best.macro_f1[0])}** رسید.`));
 C.push(BULLET(`با تنظیمات آموزش یکسان، افزودن BiLSTM (${sgn(delta("bert + ce", ref))}) و افزودن attention (${sgn(delta(ref, att))}) بهبودی بزرگ‌تر از نوسان بین بذرها ایجاد نکرد. ادعای مقاله‌ی مرجع درباره‌ی برتری BiLSTM روی این داده تأیید نشد.`));
 C.push(BULLET(`آنتروپی متقاطع وزن‌دار (wce) بهترین نتیجه را داد: Macro-F1 برابر **${pm(cfg(wce).macro_f1)}** و دقت کلی **${f3(cfg(wce).accuracy[0])}**. روش پیشنهادی کامل (attention + wce) نسبت به بازتولید مقاله‌ی مرجع **${sgn(delta(ref, wce))}** Macro-F1 بهتر است و بیشتر این بهبود از تابع زیان می‌آید، نه از attention.`));
-if (has(OS_BERT)) C.push(BULLET(`oversampling روی BERT به Macro-F1 برابر **${pm(cfg(OS_BERT).macro_f1)}** رسید: ${sgn(delta(att, OS_BERT))} نسبت به همان مدل بدون هیچ اقدامی و ${sgn(delta(wce, OS_BERT))} نسبت به wce.`));
-else C.push(BULLET("آزمایش oversampling (درخواست جلسه‌ی قبل) پیاده‌سازی شده و نتایج آن در بخش ۵-۴ آمده است."));
+if (has(OS_BERT)) C.push(BULLET(`oversampling روی BERT${cfg(OS_BERT).seeds < 2 ? " (۱ بذر، نتیجه‌ی اولیه)" : ""} به Macro-F1 برابر **${pm(cfg(OS_BERT).macro_f1)}** رسید: ${sgn(delta(att, OS_BERT))} نسبت به همان مدل بدون هیچ اقدامی و ${sgn(delta(wce, OS_BERT))} نسبت به wce.`));
+else if (has(OS_SVM)) C.push(BULLET(`oversampling روی SVM مقدار Macro-F1 را ${sgn(delta("tfidf_svm", OS_SVM))} تغییر داد. اجرای آن روی مدل پیشنهادی هنوز در جریان است (بخش ۵-۴).`));
+else C.push(BULLET("آزمایش oversampling (درخواست جلسه‌ی قبل) پیاده‌سازی شده و در حال اجراست (بخش ۵-۴)."));
 C.push(BULLET("وزن‌های attention روی واژه‌های کلیدی معنادار (مانند smoke، aground، ingress، capsized) متمرکزند و یک زیرگروه پنهان در کلاس «آسیب تجهیزات» را آشکار کردند: گزارش‌های عدم انطباق پلکان راهنما با مقررات SOLAS."));
 C.push(BULLET("تحلیل خطا نشان می‌دهد بخش عمده‌ی خطاهای باقی‌مانده از گزارش‌های چندرویدادی و زنجیره‌ی «علت ← پیامد» است (مثلاً خرابی موتور که به به گل نشستن منجر شده). این ابهام ذاتی برچسب تک‌کلاسه، سقف حدود ۰٫۹۱ را توضیح می‌دهد."));
 
@@ -205,7 +249,7 @@ if (haveOS) {
   if (has(OS_BERT)) rows.push(["BERT + BiLSTM + Attention", pm(cfg(att).macro_f1), pm(cfg(OS_BERT).macro_f1), sgn(delta(att, OS_BERT)), sgn(delta(att, OS_BERT, "critical_recall"))]);
   C.push(table(["مدل", "بدون oversampling", "با oversampling", "تغییر Macro-F1", "تغییر بازیابی بحرانی"], rows, [2700, 1800, 1800, 1600, 1738]));
   C.push(SPACER());
-  C.push(P("<<OS_TEXT>>"));
+  osParagraphs().forEach((t) => C.push(P(t)));
 } else {
   C.push(P("این آزمایش پیاده‌سازی شده و در حال اجراست (۲ اجرا، حدود ۲٫۵ ساعت). جدول این بخش پس از پایان اجرا تکمیل می‌شود."));
 }
