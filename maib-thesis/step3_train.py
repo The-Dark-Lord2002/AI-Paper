@@ -21,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
@@ -43,8 +43,13 @@ def set_seed(seed):
     torch.cuda.manual_seed_all(seed)
 
 
-def make_loader(tokenizer, df, label_to_id, batch_size, shuffle, seed=0):
-    """Tokenise the reports once and return a DataLoader that pads each batch to its longest report."""
+def make_loader(tokenizer, df, label_to_id, batch_size, shuffle, seed=0, oversample=False):
+    """
+    Tokenise the reports once and return a DataLoader that pads each batch to its longest report.
+    oversample=True: draw reports with probability 1 / (size of their class), with replacement, so every
+    class appears about equally often. The epoch still has len(df) reports: rare reports are repeated,
+    some reports of the big classes are skipped in that epoch.
+    """
     encoded = tokenizer(df["text"].tolist(), truncation=True, max_length=config.MAX_TOKENS)
     examples = [{"input_ids": ids, "label": label_to_id[label]}
                 for ids, label in zip(encoded["input_ids"], df["label"])]
@@ -61,6 +66,11 @@ def make_loader(tokenizer, df, label_to_id, batch_size, shuffle, seed=0):
         return input_ids, attention_mask, labels
 
     generator = torch.Generator().manual_seed(seed)         # makes the shuffling order reproducible
+    if oversample:
+        class_size = df["label"].map(df["label"].value_counts()).values
+        sampler = WeightedRandomSampler(weights=1.0 / class_size, num_samples=len(examples),
+                                        replacement=True, generator=generator)
+        return DataLoader(examples, batch_size=batch_size, sampler=sampler, collate_fn=collate)
     return DataLoader(examples, batch_size=batch_size, shuffle=shuffle, collate_fn=collate, generator=generator)
 
 
@@ -84,7 +94,7 @@ def predict(model, loader, device, use_amp, tokenizer=None):
 
 
 def train(model_name, loss_name, seed, batch_size=config.BATCH_SIZE, lr_bert=config.LR_BERT,
-          lr_head=config.LR_HEAD, epochs=config.EPOCHS, patience=config.PATIENCE, tag=""):
+          lr_head=config.LR_HEAD, epochs=config.EPOCHS, patience=config.PATIENCE, oversample=False, tag=""):
     name = run_name(model_name, loss_name, seed, tag)
     set_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -96,7 +106,8 @@ def train(model_name, loss_name, seed, batch_size=config.BATCH_SIZE, lr_bert=con
     train_df, val_df, test_df, labels = load_split()
     label_to_id = {label: i for i, label in enumerate(labels)}
     tokenizer = AutoTokenizer.from_pretrained(config.BERT_NAME)
-    train_loader = make_loader(tokenizer, train_df, label_to_id, batch_size, shuffle=True, seed=seed)
+    train_loader = make_loader(tokenizer, train_df, label_to_id, batch_size, shuffle=True, seed=seed,
+                               oversample=oversample)
     val_loader = make_loader(tokenizer, val_df, label_to_id, config.EVAL_BATCH_SIZE, shuffle=False)
     test_loader = make_loader(tokenizer, test_df, label_to_id, config.EVAL_BATCH_SIZE, shuffle=False)
 
@@ -169,7 +180,7 @@ def train(model_name, loss_name, seed, batch_size=config.BATCH_SIZE, lr_bert=con
         "run": name, "model": model_name, "loss": loss_name, "seed": seed, "tag": tag,
         "settings": {"bert": config.BERT_NAME, "batch_size": batch_size, "grad_accum": grad_accum,
                      "lr_bert": lr_bert, "lr_head": lr_head, "epochs": epochs, "patience": patience,
-                     "max_tokens": config.MAX_TOKENS, "device": str(device)},
+                     "oversample": oversample, "max_tokens": config.MAX_TOKENS, "device": str(device)},
         "labels": labels,
         "best_epoch": best_epoch,
         "train_minutes": round((time.time() - start) / 60, 1),
@@ -193,5 +204,7 @@ if __name__ == "__main__":
     parser.add_argument("--loss", choices=LOSS_NAMES, required=True)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE)
+    parser.add_argument("--oversample", action="store_true", help="show rare classes more often (see config.py)")
     args = parser.parse_args()
-    train(args.model, args.loss, args.seed, batch_size=args.batch_size)
+    train(args.model, args.loss, args.seed, batch_size=args.batch_size,
+          oversample=args.oversample, tag="oversample" if args.oversample else "")

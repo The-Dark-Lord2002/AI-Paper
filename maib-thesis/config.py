@@ -48,6 +48,15 @@ EXPERIMENTS = [
     ("bert_bilstm_att", "cb"),        # 4c  + class-balanced (effective number) weights
 ]
 
+# Oversampling (supervisor's request): instead of changing the loss, show the model the rare classes more often.
+# Training reports are drawn with probability 1 / (size of their class), so every class is seen about equally
+# often. The epoch length stays the same (same number of updates as every other run), only the mix changes.
+# Combined with plain "ce" on purpose: oversampling AND a weighted loss would correct the imbalance twice.
+# Run with:  python step4_run_experiments.py --oversample
+OVERSAMPLE_EXPERIMENTS = [
+    ("bert_bilstm_att", "ce"),        # compare with bert_bilstm_att + ce (nothing) and + wce (weighted loss)
+]
+
 # Optional: the reference paper's exact learning rate (1e-6 for every layer). Needs many more epochs.
 # Run with:  python step4_run_experiments.py --paper-settings
 PAPER_SETTINGS = dict(lr_bert=1e-6, lr_head=1e-6, epochs=30, patience=5, tag="paper_lr")
