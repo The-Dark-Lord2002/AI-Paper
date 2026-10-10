@@ -27,6 +27,9 @@ order = ["tfidf_svm", "tfidf_svm_oversample", "bert + ce", "bert_bilstm + ce", "
 names = [n for n in order if n in groups] + sorted(n for n in groups if n not in order)
 labels = runs[0]["labels"]
 support = {c: runs[0]["test"]["per_class"][c]["support"] for c in labels}
+val_run = next(r for r in runs if "val" in r)
+train_support = {c: summary["class_counts"][c] - support[c] - val_run["val"]["per_class"][c]["support"]
+                 for c in labels}
 critical = ["Fire / Explosion", "Capsizing / Listing", "Flooding / Foundering"]
 
 def ms(v):
@@ -41,6 +44,7 @@ for n in names:
         "macro_f1": ms([r["test"]["macro_f1"] for r in rs]),
         "accuracy": ms([r["test"]["accuracy"] for r in rs]),
         "critical_recall": ms([np.mean([r["test"]["per_class"][c]["recall"] for c in critical]) for r in rs]),
+        "critical_precision": ms([np.mean([r["test"]["per_class"][c]["precision"] for c in critical]) for r in rs]),
         "recall": {c: float(np.mean([r["test"]["per_class"][c]["recall"] for r in rs])) for c in labels},
         "found": {c: float(np.mean([r["test"]["per_class"][c]["recall"] for r in rs]) * support[c]) for c in labels},
         "f1": {c: float(np.mean([r["test"]["per_class"][c]["f1"] for r in rs])) for c in labels},
@@ -64,7 +68,7 @@ if tw.exists():
     for row in csv.DictReader(open(tw)):
         top_words.setdefault(row["class"], []).append(row["word"])
 
-data = {"summary": summary, "labels": labels, "support": support, "critical": critical, "configs": configs,
+data = {"summary": summary, "labels": labels, "support": support, "train_support": train_support, "critical": critical, "configs": configs,
         "per_run": per_run, "best_config": best, "best_cm_seeds": len(groups[best]),
         "confusion_pairs": pairs, "top_words": top_words,
         "best_epoch_counts": {str(k): best_epochs.count(k) for k in sorted(set(best_epochs))}}
