@@ -10,12 +10,18 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precisio
 import config
 
 
-def load_split():
-    """Return the train, val and test tables (columns: text, label) and the list of class names."""
+def load_split(augmented=False):
+    """
+    Return the train, val and test tables (columns: text, label) and the list of class names.
+    augmented=True: the training table also holds the rewritten reports of step 7. Val and test never change.
+    """
     data_dir = Path(config.DATA_DIR)
     if not (data_dir / "train.csv").exists():
         raise FileNotFoundError(f"{data_dir}/train.csv not found. Run step1_prepare_data.py first.")
-    train = pd.read_csv(data_dir / "train.csv")
+    train_file = data_dir / ("train_augmented.csv" if augmented else "train.csv")
+    if not train_file.exists():
+        raise FileNotFoundError(f"{train_file} not found. Run step7_augment.py first.")
+    train = pd.read_csv(train_file)
     val = pd.read_csv(data_dir / "val.csv")
     test = pd.read_csv(data_dir / "test.csv")
     labels = json.loads((data_dir / "labels.json").read_text())

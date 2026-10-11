@@ -48,7 +48,7 @@ class Attention(nn.Module):
 
 class IncidentClassifier(nn.Module):
 
-    def __init__(self, model_name, num_classes):
+    def __init__(self, model_name, num_classes, lstm_hidden=config.LSTM_HIDDEN, lstm_layers=config.LSTM_LAYERS):
         super().__init__()
         assert model_name in MODEL_NAMES, f"model must be one of {MODEL_NAMES}"
         self.model_name = model_name
@@ -58,8 +58,10 @@ class IncidentClassifier(nn.Module):
         feature_dim = bert_dim
 
         if model_name in ("bert_bilstm", "bert_bilstm_att"):
-            self.lstm = nn.LSTM(bert_dim, config.LSTM_HIDDEN, batch_first=True, bidirectional=True)
-            feature_dim = 2 * config.LSTM_HIDDEN                             # forward + backward = 256
+            # with 2+ layers, layer 2 reads the outputs of layer 1; dropout 0.1 between the layers
+            self.lstm = nn.LSTM(bert_dim, lstm_hidden, num_layers=lstm_layers, batch_first=True,
+                                bidirectional=True, dropout=0.1 if lstm_layers > 1 else 0.0)
+            feature_dim = 2 * lstm_hidden                                    # forward + backward (256 by default)
         if model_name == "bert_bilstm_att":
             self.attention = Attention(feature_dim, config.ATTENTION_DIM)
 
@@ -75,7 +77,8 @@ class IncidentClassifier(nn.Module):
         packed = pack_padded_sequence(h, lengths, batch_first=True, enforce_sorted=False)
         packed_states, (final, _) = self.lstm(packed)
         states, _ = pad_packed_sequence(packed_states, batch_first=True, total_length=h.size(1))
-        last = torch.cat([final[0], final[1]], dim=1)     # forward LSTM's last state + backward LSTM's last state
+        # final holds 2 states per layer (forward, backward); the last two belong to the top layer
+        last = torch.cat([final[-2], final[-1]], dim=1)   # forward LSTM's last state + backward LSTM's last state
         return states, last
 
     def forward(self, input_ids, attention_mask):
