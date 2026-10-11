@@ -8,7 +8,7 @@ A run whose result file already exists is skipped. If the computer stops half wa
 run the same command again and it continues where it stopped.
 
   python step4_run_experiments.py                     # laptop GPU (batch 8, 4 accumulation steps)
-  python step4_run_experiments.py --batch-size 32     # bigger GPU (Kaggle / Colab): same result, faster
+  python step4_run_experiments.py --batch-size 32     # bigger GPU: same result, faster
   python step4_run_experiments.py --seeds 1 2         # fewer seeds if short on time
   python step4_run_experiments.py --paper-settings    # optional: reference model with the paper's lr = 1e-6
   python step4_run_experiments.py --oversample        # oversampling runs (config.OVERSAMPLE_EXPERIMENTS)
