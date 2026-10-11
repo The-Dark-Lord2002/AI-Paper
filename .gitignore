@@ -1,5 +1,13 @@
+# Python
 __pycache__/
 *.pyc
-checkpoints/
-checkpoints_bert_baseline/
 .venv/
+.ipynb_checkpoints/
+
+# Dataset written by step1_prepare_data.py (recreate it with that script)
+maib-thesis/data/
+
+# Report and slide builders
+node_modules/
+presentations/_build/out/
+presentations/_build/guide.html

@@ -1,25 +1,56 @@
-# AI-Paper
+# دسته‌بندی گزارش‌های حوادث دریایی با استفاده از مدل‌های زبانی
 
-Implementations of deep-learning architectures from published papers, applied
-to real datasets.
+**Classification of Marine Incident Reports Using Language Models**
 
-## Projects
+پایان‌نامه‌ی کارشناسی ارشد، دانشگاه صنعتی شاهرود.
+دانشجو: محمد مهدی عرب · استاد راهنما: دکتر هدی مشایخی · استاد مشاور: دکتر مریم خدابخش
 
-### [bert-bilstm-marine-accidents](bert-bilstm-marine-accidents/)
+## ساختار مخزن
 
-A BERT + BiLSTM text classifier, based on the architecture and hyperparameters
-from Zhao et al. (2025), *"Causation Analysis of Marine Traffic Accidents
-Using Deep Learning Approaches: A Case Study from China's Coasts"* (Systems,
-13(4):284) — full text: [`Causation_Analysis_of_Marine_Traffic_Accidents_Usi.pdf`](Causation_Analysis_of_Marine_Traffic_Accidents_Usi.pdf) —
-fine-tuned on the [`baker-street/maib-incident-reports-5K`](https://huggingface.co/datasets/baker-street/maib-incident-reports-5K)
-dataset to classify UK MAIB marine incident narratives by incident type
-(Collision, Grounding/Stranding, Fire/Explosion, Accident to person(s),
-Damage/Loss of Equipment, ...).
+```
+AI-Paper/
+├── maib-thesis/                     کد پایان‌نامه (هر گام پروپوزال یک فایل)
+│   ├── config.py, step1 … step6, models.py, losses.py, common.py
+│   ├── MAIB_Pipeline.ipynb          اجرای همه‌ی گام‌ها در یک نوت‌بوک
+│   ├── results/                     نتیجه‌ی هر اجرا (JSON)
+│   └── reports/                     جدول‌ها و نمودارها
+├── docs/
+│   ├── proposal/                    پروپوزال (PDF و Word)
+│   └── papers/                      مقاله‌های مرتبط؛ مقاله‌ی مرجع با برچسب REFERENCE
+└── presentations/
+    ├── 2026-10-11_progress-meeting/ گزارش Word، اسلایدها و راهنمای آمادگی جلسه
+    └── _build/                      اسکریپت‌هایی که این فایل‌ها را از نتایج می‌سازند
+```
 
-Runs entirely from one Jupyter notebook
-(`Thesis_Progress_Full_Pipeline.ipynb`) covering all three parts of the
-paper's method: plain-BERT baseline, BERT+BiLSTM, the Table-10-style
-comparison, and Apriori causal-factor mining. See that project's own
-[README](bert-bilstm-marine-accidents/README.md) for setup, usage,
-architecture details, and exactly which hyperparameters are confirmed from
-the paper's Table 9 versus this project's own dataset-driven choices.
+## نتایج فعلی
+
+دادگان عمومی MAIB، ۹ کلاس، ۸۶۵ گزارش آزمون. میانگین ± انحراف معیار روی ۲ seed.
+
+| پیکربندی | Macro-F1 | Recall کلاس‌های بحرانی | Accuracy |
+|---|---:|---:|---:|
+| TF-IDF + SVM | 0.885 | 0.827 | 0.914 |
+| TF-IDF + SVM + oversampling | 0.885 | 0.834 | 0.917 |
+| BERT | 0.898 ± 0.007 | 0.873 ± 0.008 | 0.927 |
+| BERT + BiLSTM (مقاله‌ی مرجع) | 0.901 ± 0.004 | 0.851 ± 0.040 | 0.928 |
+| BERT + BiLSTM + Attention | 0.905 ± 0.004 | 0.845 ± 0.016 | 0.931 |
+| **+ Attention + wce** | **0.914 ± 0.006** | **0.868 ± 0.016** | **0.935** |
+| + Attention + focal | 0.905 ± 0.001 | 0.858 ± 0.012 | 0.930 |
+| + Attention + cb | 0.910 ± 0.001 | 0.857 ± 0.000 | 0.935 |
+| + Attention + oversampling | 0.909 ± 0.001 | 0.851 ± 0.008 | 0.931 |
+
+- همه‌ی مدل‌های BERT از خط مبنای کلاسیک بهترند.
+- BiLSTM و attention با تنظیمات یکسان بهبودی بیشتر از نوسان بین seedها ندادند (RQ1).
+- تابع زیان وزن‌دار (`wce`) بیشترین بهبود را داد (RQ2).
+- oversampling روی هیچ‌کدام از دو مدل بهبود روشنی نداد.
+
+جزئیات کامل در [`maib-thesis/reports/main_table.md`](maib-thesis/reports/main_table.md) و گزارش Word در `presentations/` است.
+
+## اجرا
+
+```bash
+cd maib-thesis
+pip install -r requirements.txt
+python step1_prepare_data.py
+```
+
+دستورهای کامل و توضیح هر فایل در [`maib-thesis/README.md`](maib-thesis/README.md) آمده است.
