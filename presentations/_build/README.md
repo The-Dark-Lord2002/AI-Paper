@@ -1,13 +1,13 @@
 # Build scripts for the report, slides and study guide
 
 Not part of the research code. They read the results of `maib-thesis/` and rebuild the files in
-`../2026-10-11_progress-meeting/`. Run them from this folder after `step5_report.py` and `step6_attention.py`.
+`../1405-7-19_progress-meeting/`. Run them from this folder after `step5_report.py` and `step6_attention.py`.
 
 ```bash
 npm install docx pptxgenjs @fontsource/vazirmatn       # once
 
 M=../../maib-thesis
-OUT=../2026-10-11_progress-meeting
+OUT=../1405-7-19_progress-meeting
 python3 build_data.py $M out                           # aggregates results -> out/data.json + figures
 node build_docx.js out $M $OUT/report_fa.docx          # Word report
 node build_pptx.js out $M $OUT/slides_fa.pptx          # slides
