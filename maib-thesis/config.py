@@ -72,6 +72,8 @@ BILSTM_SIZE_LOSS = "wce"       # the best loss of the main table
 AUGMENT_LLM = "Qwen/Qwen2.5-1.5B-Instruct"   # Apache-2.0, fits a 4 GB GPU in float16
 AUGMENT_TARGET = 400           # every class with fewer training reports is filled up to this many
 AUGMENT_BATCH = 8              # reports rewritten at the same time on the GPU
+AUGMENT_LABEL_CHECK = True     # keep a rewrite only if a TF-IDF + SVM trained on the real reports still
+                               # puts it in the class of its original (LAMBADA-style filter)
 # Trained on real + rewritten reports. Run with:  python step4_run_experiments.py --augment
 AUGMENT_EXPERIMENTS = [
     ("bert_bilstm_att", "ce"),        # compare with + ce (nothing), + ce [oversample] (copies) and + wce
