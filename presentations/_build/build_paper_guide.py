@@ -1,9 +1,11 @@
 """
-Builds docs/paper_guide_fa.pdf from docs/paper_guide_fa.md (Persian, right-to-left).
+Builds a Persian (right-to-left) PDF from Markdown: docs/paper_guide_fa.pdf and the short reports in presentations/.
 
   pip install markdown && npm install @fontsource/vazirmatn
   python3 build_paper_guide.py ../../docs/paper_guide_fa.md paper_guide.html
   chromium --headless --no-pdf-header-footer --print-to-pdf=../../docs/paper_guide_fa.pdf paper_guide.html
+
+--short: no cover space and no page break before every section (for a few-page report).
 """
 import html
 import re
@@ -14,7 +16,8 @@ import markdown
 
 HERE = Path(__file__).parent
 FONTS = HERE / "node_modules/@fontsource/vazirmatn/files"
-SOURCE, OUT = Path(sys.argv[1]), Path(sys.argv[2])
+SOURCE, OUT = [Path(a) for a in sys.argv[1:] if not a.startswith("--")]
+SHORT = "--short" in sys.argv
 
 LATIN_RUN = re.compile(r"[A-Za-z0-9\[(+−\-±&γβα√][A-Za-z0-9 _+−\-±.,:;/=×÷%&\[\]()'^γβαΣ·|<>√≈→←↔∝²…*]*[A-Za-z0-9\])%γβα²*]"
                        r"|[A-Za-z0-9]")
@@ -57,7 +60,7 @@ def process(body):
         text = re.sub(r"<[^>]+>", "", m.group(2))
         latin = len(re.findall(r"[A-Za-z]", text))
         persian = len(re.findall(r"[؀-ۿ]", text))
-        if latin > 3 * max(persian, 1) and len(text) > 70:     # a real English sentence, not a name
+        if latin > 3 * max(persian, 1) and (len(text) > 70 or persian == 0 and len(text) > 30):   # English, not a name
             return f'<{m.group(1)} dir="ltr" class="en">{m.group(2)}</{m.group(1)}>'
         return m.group(0)
     return re.sub(r"<(p|li|td)>(.*?)</\1>", direction, body, flags=re.S)
@@ -78,7 +81,7 @@ CSS = f"""
 html {{ direction: rtl; }}
 body {{ font-family: Vazirmatn, 'DejaVu Sans', sans-serif; font-size: 10.6pt; line-height: 1.85; color: #1d2433; background: #fff; margin: 0; }}
 .ltr {{ direction: ltr; unicode-bidi: isolate; }} .nw {{ white-space: nowrap; }}
-.en {{ text-align: left; font-style: italic; color: #24324d; }}
+.en {{ text-align: left; font-style: italic; color: #24324d; }} li.en {{ list-style: none; }}
 code {{ font-family: 'DejaVu Sans Mono', monospace; font-size: 8.8pt; background: #f1f3f7; padding: 0 4px; border-radius: 4px;
         direction: ltr; unicode-bidi: isolate; white-space: nowrap; }}
 pre {{ direction: ltr; text-align: left; background: #f4f6fa; border: 1px solid #d9dee7; border-radius: 8px; padding: 9px 12px;
@@ -104,6 +107,8 @@ hr {{ border: none; border-top: 1px solid #d9dee7; margin: 14px 0; }}
 h2 {{ break-before: page; }}
 h1 + h2, hr + h2:first-of-type {{ break-before: auto; }}
 """
+if SHORT:
+    CSS += "h1 { margin-top: 0; } h2 { break-before: auto; }"
 OUT.write_text(f"""<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
 <title>راهنمای نوشتن مقاله</title><style>{CSS}</style></head><body>{body}</body></html>""", encoding="utf-8")
 print("wrote", OUT)
