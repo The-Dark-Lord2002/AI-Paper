@@ -123,6 +123,58 @@ fig.text(0.99, 0.004, "dot = mean over seeds, line = ± 1 std", ha="right", font
 fig.tight_layout(rect=(0, 0.08, 1, 1))
 fig.savefig(OUT / "fig_results.png", dpi=200, facecolor="white")
 
+# ------------------------------------------------------------------ figures: one bar chart per metric
+# Bars start at zero, so the length of a bar is the score itself and small differences are not exaggerated.
+BAR_GROUPS = [  # (name in results, label), groups separated by a gap
+    [("tfidf_svm", "TF-IDF + SVM"), ("tfidf_svm_oversample", "TF-IDF + SVM + oversampling"),
+     ("tfidf_svm_augment", "TF-IDF + SVM + LLM augmentation")],
+    [("bert + ce", "BERT"), ("bert_bilstm + ce", "BERT + BiLSTM (reference paper)"),
+     ("bert_bilstm_att + ce", "BERT + BiLSTM + Attention")],
+    [("bert_bilstm_att + wce", "Proposed: + Attention + wce"), ("bert_bilstm_att + focal", "+ Attention + focal"),
+     ("bert_bilstm_att + cb", "+ Attention + cb")],
+    [("bert_bilstm_att + ce [oversample]", "+ Attention + oversampling"),
+     ("bert_bilstm_att + ce [augment]", "+ Attention + LLM augmentation"),
+     ("bert_bilstm_att + wce [augment]", "+ Attention + wce + LLM augmentation")],
+    [("bert_bilstm_att + wce [h384_l1]", "Proposed, BiLSTM 384 units x 1 layer"),
+     ("bert_bilstm_att + wce [h128_l2]", "Proposed, BiLSTM 128 units x 2 layers"),
+     ("bert_bilstm_att + wce [h384_l2]", "Proposed, BiLSTM 384 units x 2 layers")],
+]
+by_name = {c["name"]: c for c in configs}
+rows, y = [], 0.0
+for group in BAR_GROUPS:
+    for n, label in group:
+        if n in by_name:
+            rows.append((y, label, by_name[n])); y += 1
+    y += 0.6                                                       # gap between groups
+for key, title, fname in [("macro_f1", "Macro-F1 on the test set", "fig_macro_f1.png"),
+                          ("critical_recall", "Recall on the critical classes (fire, capsizing, flooding)",
+                           "fig_critical_recall.png")]:
+    fig, ax = plt.subplots(figsize=(9, 0.36 * len(rows) + 1.9))
+    for yy, label, c in rows:
+        m, sd = c[key]
+        ax.barh(yy, m, height=0.72, color=COL[group_of(c["name"])], zorder=2)
+        if sd > 0:
+            ax.errorbar(m, yy, xerr=sd, color=INK, lw=1.1, capsize=3, zorder=3)
+        ax.text(m + sd + 0.012, yy, f"{m:.3f}" + (f" ± {sd:.3f}" if c["seeds"] > 1 else ""), va="center",
+                fontsize=8.5, color=INK, fontweight="bold" if label.startswith("Proposed:") else "normal")
+    ax.set_yticks([r[0] for r in rows], [r[1] for r in rows], fontsize=9, color=INK)
+    for t in ax.get_yticklabels():
+        if t.get_text().startswith("Proposed:"): t.set_fontweight("bold")
+    ax.invert_yaxis()
+    ax.set_xlim(0, 1.16); ax.set_xticks(np.arange(0, 1.01, 0.1))
+    ax.set_xlabel(title.split(" (")[0].replace(" on the test set", "") + " (mean over seeds; error bar = ± 1 std)",
+                  fontsize=8.5, color=MUTED)
+    ax.set_title(title, fontsize=11, color=INK, loc="left")
+    ax.grid(axis="x", color=GRID, lw=1); ax.set_axisbelow(True)
+    for sp in ("top", "right", "left"): ax.spines[sp].set_visible(False)
+    ax.spines["bottom"].set_color(GRID); ax.tick_params(colors=MUTED, labelsize=8, length=0)
+    ax.tick_params(axis="y", labelcolor=INK, labelsize=9)
+    handles = [plt.Rectangle((0, 0), 1, 1, color=COL[g], label=GNAME[g]) for g in range(len(GNAME))]
+    fig.legend(handles=handles, loc="lower center", ncol=len(handles), frameon=False, fontsize=8.5,
+               bbox_to_anchor=(0.5, 0.0))
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    fig.savefig(OUT / fname, dpi=200, facecolor="white")
+
 # ------------------------------------------------------------------ figure: learning curves (val macro-F1)
 fig, ax = plt.subplots(figsize=(7, 3.6))
 for i, n in enumerate(["bert + ce", "bert_bilstm + ce", "bert_bilstm_att + ce", "bert_bilstm_att + wce"]):

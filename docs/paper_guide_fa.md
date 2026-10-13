@@ -501,7 +501,7 @@ Fire و Collision واژه‌های شاخص دارند (fire، collided) و ب�
 | + Att + wce, BiLSTM 128 × 2 | 0.910 ± 0.007 | 0.873 ± 0.008 | 0.935 ± 0.007 |
 | + Att + wce, BiLSTM 384 × 2 | 0.913 ± 0.001 | 0.868 ± 0.016 | 0.932 ± 0.004 |
 
-شکل مقاله: `presentations/_build` نمودار نقطه‌ای Macro-F1 را می‌سازد (`fig_results.png`).
+شکل مقاله: `presentations/_build/build_data.py` دو نمودار میله‌ای می‌سازد: `fig_macro_f1.png` و `fig_critical_recall.png`. هر معیار در یک شکل جدا، و محور از صفر (نظر استاد راهنما: نمایش نقطه‌ای دو معیار کنار هم مناسب نیست).
 
 ### ۸-۲. RQ1: معماری
 
@@ -697,7 +697,8 @@ Discussion جواب «**یعنی چه؟**» و «**چرا؟**» است. برای
 |---|---|---|
 | Fig. 1 | نمای کلی روش (معماری) | باید کشیده شود |
 | Fig. 2 | توزیع کلاس‌ها | `reports/class_distribution.png` |
-| Fig. 3 | Macro-F1 و recall بحرانی، با میله‌ی خطا | `fig_results.png` از `presentations/_build` |
+| Fig. 3 | Macro-F1، نمودار میله‌ای با میله‌ی خطا (محور از صفر) | `fig_macro_f1.png` از `presentations/_build` |
+| Fig. 3b | recall بحرانی، همان شکل | `fig_critical_recall.png` از `presentations/_build` |
 | Fig. 4 | ماتریس درهم‌ریختگی | `reports/confusion_matrix.png` |
 | Fig. 5 | recall هر کلاس | `reports/per_class_recall.png` |
 | Table 1 | داده | بخش ۵ |
