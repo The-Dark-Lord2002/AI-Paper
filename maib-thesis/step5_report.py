@@ -6,8 +6,6 @@ Reads every file in results/ and produces:
   reports/per_class_recall.csv     recall of every class for every configuration (rarest class first)
   reports/per_class_recall.png     the same as a heat map
   reports/confusion_matrix.png     confusion matrix of config.MAIN_CONFIG (the proposed model)
-  reports/confusion_matrix.csv     the same as a table: mean count per seed (true class = row)
-  reports/per_class_main.csv       precision, recall and F1 of every class for config.MAIN_CONFIG
 and prints the answers to the two research questions.
 
   python step5_report.py
@@ -179,13 +177,5 @@ if bert_names:
     ax.set_title(f"Confusion matrix: {best} ({len(groups[best])} seeds summed, rows normalised)")
     fig.tight_layout()
     fig.savefig(reports / "confusion_matrix.png", dpi=150)
-
-    # the same numbers as tables (a table belongs in a table, not in a picture)
-    mean_counts = pd.DataFrame(counts / len(groups[best]), index=labels, columns=labels)   # mean count per seed
-    mean_counts.round(1).to_csv(reports / "confusion_matrix.csv")
-    per_class = pd.DataFrame({m: [np.mean([r["test"]["per_class"][c][m] for r in groups[best]]) for c in labels]
-                              for m in ("precision", "recall", "f1")}, index=labels).round(3)
-    per_class["support"] = [test_support[c]["support"] for c in labels]
-    per_class.to_csv(reports / "per_class_main.csv")
 
 print(f"\nSaved tables and figures to {reports}/")
