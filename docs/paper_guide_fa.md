@@ -20,7 +20,7 @@
 
 فرض کرده‌ام مقاله **انگلیسی** و برای یک **نشریه‌ی بین‌المللی** است. اگر فارسی بنویسی، ساختار همین است و فقط جمله‌ها را ترجمه کن.
 
-بخش‌هایی که هنوز نتیجه‌شان نیامده با **[در انتظار نتیجه]** مشخص شده‌اند: افزایش داده با LLM و BiLSTM بزرگ‌تر.
+همه‌ی نتایج آمده‌اند. آخرین به‌روزرسانی (۲۱ مهر ۱۴۰۵): نتایج افزایش داده با LLM و BiLSTM بزرگ‌تر. گزارش کامل با همه‌ی شکل‌ها: `presentations/1405-7-21_full-report/report_fa.pdf`.
 
 **قانون طلایی مقاله‌نویسی:** هر جمله‌ای که می‌نویسی باید یا **عدد** پشتش باشد، یا **منبع**. اگر هیچ‌کدام نیست، آن جمله ادعای بی‌پشتوانه است. حذفش کن یا نرمش کن.
 
@@ -389,13 +389,13 @@ BERT-base (12 layers) → one 768-dim vector per token
 - **SVM:** random oversampling تا اندازه‌ی بزرگ‌ترین کلاس (۱٬۱۶۳).
 - **BERT:** class-balanced sampling با طول epoch ثابت، **با ce** (نه wce). چون ترکیب هر دو، نامتوازنی را دو بار جبران می‌کرد.
 
-### ۶-۴. افزایش داده با LLM [روش کامل؛ نتیجه در انتظار]
+### ۶-۴. افزایش داده با LLM
 
 | جزء | مقدار |
 |---|---|
 | مدل زبانی | Qwen2.5-1.5B-Instruct (Qwen Team, 2024)؛ متن‌باز (Apache-2.0)؛ اجرا روی GPU محلی |
 | کار | بازنویسی (paraphrasing) گزارش‌های **واقعی آموزش** رده‌های کمیاب |
-| هدف | هر کلاس با کمتر از ۴۰۰ گزارش آموزش، تا ۴۰۰ پر شود؛ حدود ۱٬۰۷۰ بازنویسی |
+| هدف | هر کلاس با کمتر از ۴۰۰ گزارش آموزش، تا ۴۰۰ پر شود: ۱٬۴۹۳ بازنویسی تولید و ۱٬۰۶۸ پذیرفته شد (۷۱.۵٪)؛ داده‌ی آموزش از ۴٬۰۳۳ به ۵٬۱۰۱ رسید |
 | تنظیم تولید | نمونه‌گیری با temperature 0.8 و top-p 0.95؛ حداکثر ۲۵۶ توکن جدید |
 | فیلتر ۱ | نسبت طول بازنویسی به اصل بین ۰.۵ و ۲ |
 | فیلتر ۲ | اشتراک کلمه (Jaccard) بین ۰.۱۵ و ۰.۸: نه کپی، نه بی‌ربط |
@@ -411,14 +411,29 @@ BERT-base (12 layers) → one 768-dim vector per token
 
 **بررسی دستی (برای مقاله):** در نمونه‌هایی که بررسی کردیم، **نوع حادثه همیشه حفظ شده بود**، ولی گاهی **جزئیات فرعی** عوض شده بود (مثلاً lifeboat ← liferaft، یا escorted ← towed). **سبک** بازنویسی‌ها هم رسمی‌تر از گزارش‌های اصلی بود. هر دو را در Limitations بنویس.
 
-### ۶-۵. BiLSTM بزرگ‌تر [در انتظار نتیجه]
+**نرخ پذیرش در فیلتر برچسب (برای مقاله، جدول کوچک):**
 
-| واحد در هر جهت | لایه | خروجی برای هر کلمه |
-|---:|---:|---:|
-| 128 | 1 | 256 (پیش‌فرض) |
-| 384 | 1 | 768 (هم‌اندازه‌ی BERT) |
-| 128 | 2 | 256 |
-| 384 | 2 | 768 |
+| کلاس | واقعی | تولیدشده | پذیرفته | نرخ پذیرش |
+|---|---:|---:|---:|---:|
+| Capsizing | 69 | 487 | 331 | 68٪ |
+| Flooding | 131 | 408 | 269 | 66٪ |
+| Fire | 227 | 184 | 173 | 94٪ |
+| Collision | 228 | 187 | 172 | 92٪ |
+| Contact | 284 | 215 | 116 | 54٪ |
+| Grounding | 393 | 12 | 7 | 58٪ |
+
+Fire و Collision واژه‌های شاخص دارند (fire، collided) و بیشتر پذیرفته شدند. فیلتر سخت‌گیر است: مثلاً بازنویسی یک گزارش Contact با «collided with a concrete quay wall» رد شد، با اینکه هنوز Contact است.
+
+### ۶-۵. BiLSTM بزرگ‌تر
+
+| واحد در هر جهت | لایه | خروجی برای هر کلمه | پارامترهای BiLSTM |
+|---:|---:|---:|---:|
+| 128 | 1 | 256 (پیش‌فرض) | 0.92M |
+| 384 | 1 | 768 (هم‌اندازه‌ی BERT) | 3.5M |
+| 128 | 2 | 256 | 1.3M |
+| 384 | 2 | 768 | 7.1M |
+
+برای مقایسه: BERT پایه حدود ۱۱۰ میلیون پارامتر دارد.
 
 همه با wce، چون بهترین تابع زیان بود. با ۲ لایه، dropout برابر ۰.۱ بین لایه‌ها است.
 
@@ -453,10 +468,10 @@ BERT-base (12 layers) → one 768-dim vector per token
 | 2 | BERT ← BERT + BiLSTM ← + Attention (همه با ce) | RQ1 | 6 |
 | 3 | Attention + ce / wce / focal / cb | RQ2، تابع زیان | 6 (+۲ مشترک) |
 | 4 | oversampling روی SVM و روی Attention + ce | RQ2، نمونه‌گیری | 1 + 2 |
-| 5 | افزایش داده با LLM روی SVM، Attention + ce و Attention + wce | RQ2، تولید داده | 1 + 4 [در انتظار] |
-| 6 | BiLSTM با (384,1)، (128,2) و (384,2)، همه با wce | RQ1، ظرفیت | 6 [در انتظار] |
+| 5 | افزایش داده با LLM روی SVM، Attention + ce و Attention + wce | RQ2، تولید داده | 1 + 4 |
+| 6 | BiLSTM با (384,1)، (128,2) و (384,2)، همه با wce | RQ1، ظرفیت | 6 |
 
-**جمع:** ۲۴ اجرای BERT، هر کدام حدود ۷۵ تا ۹۵ دقیقه روی GPU لپ‌تاپ.
+**جمع:** ۲۴ اجرای BERT (۱۲ پیکربندی × ۲ seed)، هر کدام حدود ۶۰ تا ۹۲ دقیقه؛ در مجموع حدود ۳۱ ساعت روی GPU لپ‌تاپ، به‌علاوه‌ی ۲.۵ ساعت تولید داده با LLM.
 
 ---
 
@@ -472,6 +487,7 @@ BERT-base (12 layers) → one 768-dim vector per token
 |---|---:|---:|---:|
 | TF-IDF + SVM | 0.885 | 0.827 | 0.914 |
 | TF-IDF + SVM + oversampling | 0.885 | 0.834 | 0.917 |
+| TF-IDF + SVM + LLM augmentation | 0.889 | 0.850 | 0.916 |
 | BERT | 0.898 ± 0.007 | 0.873 ± 0.008 | 0.927 ± 0.005 |
 | BERT + BiLSTM (reference) | 0.901 ± 0.004 | 0.851 ± 0.040 | 0.928 ± 0.001 |
 | BERT + BiLSTM + Att (ce) | 0.905 ± 0.004 | 0.845 ± 0.016 | 0.931 ± 0.002 |
@@ -479,8 +495,11 @@ BERT-base (12 layers) → one 768-dim vector per token
 | + Att + focal | 0.905 ± 0.001 | 0.858 ± 0.012 | 0.930 ± 0.001 |
 | + Att + cb | 0.910 ± 0.001 | 0.857 ± 0.000 | 0.935 ± 0.004 |
 | + Att + ce + oversampling | 0.909 ± 0.001 | 0.851 ± 0.008 | 0.931 ± 0.002 |
-| + Att + ce + LLM augmentation | [در انتظار] | | |
-| + Att + wce + LLM augmentation | [در انتظار] | | |
+| + Att + ce + LLM augmentation | 0.908 ± 0.009 | 0.862 ± 0.008 | 0.932 ± 0.004 |
+| + Att + wce + LLM augmentation | 0.915 ± 0.002 | 0.868 ± 0.016 | 0.935 ± 0.002 |
+| + Att + wce, BiLSTM 384 × 1 | 0.909 ± 0.003 | 0.862 ± 0.007 | 0.929 ± 0.009 |
+| + Att + wce, BiLSTM 128 × 2 | 0.910 ± 0.007 | 0.873 ± 0.008 | 0.935 ± 0.007 |
+| + Att + wce, BiLSTM 384 × 2 | 0.913 ± 0.001 | 0.868 ± 0.016 | 0.932 ± 0.004 |
 
 شکل مقاله: `presentations/_build` نمودار نقطه‌ای Macro-F1 را می‌سازد (`fig_results.png`).
 
@@ -490,7 +509,9 @@ BERT-base (12 layers) → one 768-dim vector per token
 |---|---:|---|
 | BERT + BiLSTM در برابر BERT | +0.004 | در حد نوسان seed |
 | + Attention در برابر BiLSTM | +0.004 | در حد نوسان seed |
-| BiLSTM بزرگ‌تر در برابر ۱۲۸ واحد | [در انتظار] | |
+| BiLSTM 384 × 1 در برابر 128 × 1 (هر دو wce) | −0.006 | در حد نوسان seed |
+| BiLSTM 128 × 2 در برابر 128 × 1 | −0.005 | در حد نوسان seed |
+| BiLSTM 384 × 2 در برابر 128 × 1 | −0.001 | در حد نوسان seed |
 
 **یک الگوی کوچک:** attention در هر دو seed بهترین recall را روی سه کلاس «برخورد» داشت (Contact، Collision و Grounding)؛ حدود ۲ تا ۳ گزارش در Contact.
 
@@ -503,7 +524,9 @@ BERT-base (12 layers) → one 768-dim vector per token
 | focal | ±0.000 | +0.013 | در حد نوسان |
 | oversampling (BERT) | +0.003 | +0.005 | در حد نوسان |
 | oversampling روی SVM (نسبت به SVM) | +0.0006 | +0.007 | عملاً صفر |
-| LLM augmentation | [در انتظار] | | |
+| LLM augmentation (BERT، با ce) | +0.003 | +0.017 | در حد نوسان |
+| wce + LLM augmentation (نسبت به wce) | +0.001 | ±0.000 | در حد نوسان |
+| LLM augmentation روی SVM (نسبت به SVM) | +0.005 | +0.022 | تک‌اجرا؛ بهبود کوچک |
 
 **معامله‌ی wce** (تعداد گزارش‌های درست، میانگین دو seed، ce ← wce):
 
@@ -514,6 +537,20 @@ BERT-base (12 layers) → one 768-dim vector per token
 - **در کل ۳.۵ گزارش درست بیشتر.** accuracy هم کم نشد (0.931 ← 0.935).
 
 **oversampling روی BERT:** بهترین recall در Collision (۴۸ از ۴۹). Capsizing در هر دو seed ۱۱ از ۱۵ بود، بدون هیچ پیش‌بینی اشتباه (precision = 1.0). در عوض حدود ۳.۵ گزارش کمتر در Accident. روی SVM هم همین الگو دیده شد: خطا از بزرگ‌ترین کلاس به کلاس‌های کوچک‌تر جابه‌جا می‌شود.
+
+**LLM augmentation** (تعداد گزارش‌های درست، میانگین دو seed):
+
+| کلاس (test n) | ce | ce + aug | wce | wce + aug |
+|---|---:|---:|---:|---:|
+| Capsizing (15) | 10.5 | 11 | 11.5 | 11.5 |
+| Flooding (28) | 24 | 24.5 | 24 | 24 |
+| Fire (48) | 47 | 47 | 47 | 47 |
+| Collision (49) | 45.5 | 47.5 | 47 | 48.5 |
+| Contact (61) | 52 | 52 | 51.5 | 51.5 |
+
+تنها بهبود پایدار در Collision است (۱.۵ تا ۲ گزارش). کلاس‌های پرتکرار آسیب ندیدند (میانگین F1 چهار کلاس پرتکرار با wce: 0.936 ← 0.935). روی SVM: Capsizing ۱۰ ← ۱۱ از ۱۵، و Collision و Contact هر کدام ۱ گزارش بیشتر. هزینه: هر اجرای BERT ۹۲ دقیقه به‌جای ۷۵ (۲۲٪ بیشتر).
+
+**BiLSTM بزرگ‌تر:** در seed اول، BiLSTM با ۳۸۴ واحد خطای آموزش کمتری داشت (0.064 در برابر 0.081) ولی Macro-F1 اعتبارسنجی همان ماند (0.915)؛ ظرفیت اضافه صرف حفظ کردن داده‌ی آموزش شد.
 
 ### ۸-۴. نتایج هر کلاس (Table 4 مقاله)
 
@@ -533,7 +570,7 @@ BERT-base (12 layers) → one 768-dim vector per token
 
 **در مقاله حتماً بنویس:** با ۱۵ گزارش Capsizing در آزمون، هر گزارش ۶.۷ واحد recall است. تفاوت‌های ۱ تا ۲ گزارشی بین مدل‌های BERT قابل اتکا نیست. چیزی که قطعی است برتری **همه‌ی** مدل‌های BERT بر SVM در این کلاس است.
 
-### ۸-۵. اشتباه‌های پرتکرار (بهترین مدل، جمع دو seed)
+### ۸-۵. اشتباه‌های پرتکرار (مدل پیشنهادی Att + wce، جمع دو seed)
 
 | کلاس واقعی | پیش‌بینی | تعداد |
 |---|---|---:|
@@ -544,7 +581,7 @@ BERT-base (12 layers) → one 768-dim vector per token
 | Grounding | Loss of Control | 6 |
 | Flooding | Grounding | 5 |
 
-شکل مقاله: `maib-thesis/reports/confusion_matrix.png`.
+شکل مقاله: `maib-thesis/reports/confusion_matrix.png` (همین مدل؛ در `config.MAIN_CONFIG` تعیین می‌شود).
 
 ### ۸-۶. واژه‌های پروزن attention (Table 5 مقاله)
 
@@ -576,11 +613,13 @@ Discussion جواب «**یعنی چه؟**» و «**چرا؟**» است. برای
 
 ### نکته‌های اصلی
 
-**۱. معماری گلوگاه نیست.** BiLSTM و attention بهبودی بیشتر از نوسان ندادند. یک توضیح محتمل: BERT خودش دوطرفه است و ۱۲ لایه self-attention دارد. گزارش‌ها هم کوتاه‌اند (میانه‌ی ۵۹ کلمه). پس لایه‌ی بازگشتی اطلاعات زیادی اضافه نمی‌کند. [نتیجه‌ی BiLSTM بزرگ‌تر این را تقویت یا تضعیف می‌کند.]
+**۱. معماری گلوگاه نیست.** BiLSTM و attention بهبودی بیشتر از نوسان ندادند. یک توضیح محتمل: BERT خودش دوطرفه است و ۱۲ لایه self-attention دارد. گزارش‌ها هم کوتاه‌اند (میانه‌ی ۵۹ کلمه). پس لایه‌ی بازگشتی اطلاعات زیادی اضافه نمی‌کند. **BiLSTM بزرگ‌تر این را تقویت کرد:** با ۱.۴ تا ۷.۷ برابر پارامتر (تا ۷.۱ میلیون) هیچ بهبودی دیده نشد، و خطای آموزش کمتر بدون بهبود اعتبارسنجی، نشانه‌ی حفظ کردن داده است. لازم نیست خروجی BiLSTM هم‌اندازه‌ی BERT (۷۶۸) باشد: ورودی BiLSTM همیشه ۷۶۸ بعد است و خروجی آن فقط خلاصه‌ای برای ۹ کلاس است.
 
 **۲. تابع زیان مهم‌تر از معماری است.** wce با یک تغییر ساده در یک خط کد، بیشتر از لایه‌های اضافه کمک کرد.
 
-**۳. نمونه‌گیری دوباره اطلاعات جدید نمی‌دهد.** oversampling در امید ریاضی همان وزن wce را دارد، ولی با نویز نمونه‌گیری. روی SVM هم اثری نداشت. خطاهای Capsizing احتمالاً **معنایی‌اند**، نه **کمّی**. [LLM augmentation آزمون مستقیم این فرضیه است: اگر داده‌ی جدید کمک کند، مشکل کمبود تنوع بوده است.]
+**۳. نمونه‌گیری دوباره اطلاعات جدید نمی‌دهد.** oversampling در امید ریاضی همان وزن wce را دارد، ولی با نویز نمونه‌گیری. روی SVM هم اثری نداشت. خطاهای Capsizing احتمالاً **معنایی‌اند**، نه **کمّی**.
+
+**۳ب. افزایش داده با LLM واژه‌ی تازه می‌آورد، نه اطلاعات تازه.** LLM augmentation روی SVM کمی کمک کرد (+0.005) ولی روی BERT نه. توضیح: SVM هر واژه را ویژگی جدا می‌بیند؛ مترادف تازه برایش ویژگی تازه است. BERT از پیش‌آموزش می‌داند capsized و overturned هم‌معنا هستند؛ بازنویسی برایش همان اطلاعات قبلی است. این با Longpre et al. (2020) هم‌خوان است: افزایش داده‌ی عمومی (بازنویسی، ترجمه‌ی رفت‌وبرگشتی) به مدل‌های پیش‌آموزش‌دیده کمک چندانی نمی‌کند. wce، oversampling و augmentation هر سه سهم کلاس‌های کمیاب را بالا می‌برند؛ وقتی wce این سهم را درست کرده باشد، بقیه چیزی اضافه نمی‌کنند.
 
 **۴. سقف حدود ۰.۹۱ از ابهام برچسب می‌آید.** شواهد:
 
@@ -620,7 +659,7 @@ Discussion جواب «**یعنی چه؟**» و «**چرا؟**» است. برای
 2. مدل‌های قوی‌تر و مدل تطبیق‌یافته با دامنه، مثل SeaSafeBERT (Black et al., 2026).
 3. مقایسه با LLM به‌صورت zero-shot یا few-shot.
 4. دسته‌بندی چندبرچسبی یا جدا کردن علت از پیامد.
-5. افزایش داده با دستوری که سبک گزارش اصلی را حفظ کند.
+5. افزایش داده‌ای که **اطلاعات** تازه بیاورد، نه فقط واژه‌ی تازه؛ مثلاً تولید سناریوی تازه با LLM بزرگ‌تر و بررسی انسانی، با دستوری که سبک گزارش اصلی را حفظ کند.
 
 ---
 
@@ -649,7 +688,7 @@ Discussion جواب «**یعنی چه؟**» و «**چرا؟**» است. برای
 1. **زمینه (۱ جمله):** *Marine accident reports are a key source for safety learning, but their manual classification is slow and the most safety-critical incident types are rare.*
 2. **شکاف (۱ جمله):** *Prior work reported gains from adding BiLSTM layers to BERT, but under non-identical training settings and single runs.*
 3. **روش (۲ جمله):** *Using 5,762 public MAIB reports in nine classes, we compare a TF-IDF + SVM baseline with BERT, BERT + BiLSTM and BERT + BiLSTM + attention under identical settings and multiple seeds, and evaluate four loss functions, oversampling and LLM-based data augmentation with a label-consistency filter.*
-4. **نتایج (۲ تا ۳ جمله):** *All BERT models outperform the baseline (macro-F1 0.885 vs. up to 0.914). BiLSTM and attention layers bring no gain beyond seed variance, whereas inverse-frequency weighted cross-entropy improves macro-F1 by 0.009. [Augmentation result.]*
+4. **نتایج (۲ تا ۳ جمله):** *All BERT models outperform the baseline (macro-F1 0.885 vs. up to 0.915). BiLSTM and attention layers bring no gain beyond seed variance, even with up to eight times more BiLSTM parameters, whereas inverse-frequency weighted cross-entropy improves macro-F1 by 0.009. LLM-based paraphrasing of rare-class reports helps the TF-IDF baseline slightly but adds nothing beyond the weighted loss for BERT.*
 5. **پیام (۱ جمله):** *Error and attention analyses indicate that the remaining errors stem mainly from single-label annotation of multi-event reports rather than from model capacity.*
 
 ### فهرست جدول‌ها و شکل‌ها
@@ -670,7 +709,7 @@ Discussion جواب «**یعنی چه؟**» و «**چرا؟**» است. برای
 
 ### پیش از ارسال مقاله (چک‌لیست)
 
-- [ ] نتایج LLM augmentation و BiLSTM بزرگ‌تر
+- ✓ نتایج LLM augmentation و BiLSTM بزرگ‌تر (انجام شد)
 - [ ] seed سوم (حداقل برای ce، wce، oversampling و augmentation)
 - [ ] آزمون paired bootstrap یا McNemar برای مقایسه‌های اصلی
 - [ ] (پیشنهادی) یک مدل قوی‌تر، مثل RoBERTa یا DeBERTa
@@ -706,6 +745,7 @@ Discussion جواب «**یعنی چه؟**» و «**چرا؟**» است. برای
 - Joachims, T. (1998). Text categorization with support vector machines: Learning with many relevant features. *ECML*.
 - Kang, B., et al. (2020). Decoupling representation and classifier for long-tailed recognition. *ICLR*.
 - Lin, T.-Y., Goyal, P., Girshick, R., He, K., & Dollár, P. (2017). Focal loss for dense object detection. *ICCV*.
+- Longpre, S., Wang, Y., & DuBois, C. (2020). How effective is task-agnostic data augmentation for pretrained transformers? *Findings of EMNLP*.
 - Loshchilov, I., & Hutter, F. (2019). Decoupled weight decay regularization. *ICLR*.
 - Micikevicius, P., et al. (2018). Mixed precision training. *ICLR*.
 - Munaev (2025). MAIB incident reports 5K [dataset]. Hugging Face: `baker-street/maib-incident-reports-5K`.

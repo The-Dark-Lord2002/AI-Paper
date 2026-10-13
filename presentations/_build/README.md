@@ -22,6 +22,6 @@ The report and slides take every number from `results/*.json`. The study guide's
 The short follow-up reports are written by hand in Markdown and printed to PDF:
 
 ```bash
-python3 build_paper_guide.py ../1405-7-21_augmentation-update/report_fa.md update.html --short
-chromium --headless --no-pdf-header-footer --print-to-pdf=../1405-7-21_augmentation-update/report_fa.pdf update.html
+python3 build_paper_guide.py ../1405-7-21_full-report/report_fa.md update.html --short
+chromium --headless --no-pdf-header-footer --print-to-pdf=../1405-7-21_full-report/report_fa.pdf update.html
 ```

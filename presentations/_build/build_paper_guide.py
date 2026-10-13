@@ -60,7 +60,8 @@ def process(body):
         text = re.sub(r"<[^>]+>", "", m.group(2))
         latin = len(re.findall(r"[A-Za-z]", text))
         persian = len(re.findall(r"[؀-ۿ]", text))
-        if latin > 3 * max(persian, 1) and (len(text) > 70 or persian == 0 and len(text) > 30):   # English, not a name
+        long_english = len(text) > 70 or (m.group(1) == "li" and persian == 0 and len(text) > 30)   # e.g. a reference
+        if latin > 3 * max(persian, 1) and long_english:     # a real English sentence, not a name
             return f'<{m.group(1)} dir="ltr" class="en">{m.group(2)}</{m.group(1)}>'
         return m.group(0)
     return re.sub(r"<(p|li|td)>(.*?)</\1>", direction, body, flags=re.S)
@@ -69,6 +70,8 @@ def process(body):
 md = SOURCE.read_text(encoding="utf-8")
 body = markdown.markdown(md, extensions=["tables", "fenced_code", "sane_lists"])
 body = body.replace("[ ]", "☐")
+body = re.sub(r'src="(?!https?:|file:|data:)([^"]+)"',                     # images: relative to the Markdown file
+              lambda m: f'src="{(SOURCE.parent / m.group(1)).resolve().as_uri()}"', body)
 body = process(body)
 
 CSS = f"""
@@ -104,6 +107,8 @@ th {{ background: #1f3864; color: #fff; font-weight: 700; padding: 5px 7px; text
 td {{ padding: 4px 7px; border-bottom: 1px solid #d9dee7; vertical-align: top; text-align: right; }}
 tbody tr:nth-child(even) td {{ background: #f6f8fb; }}
 hr {{ border: none; border-top: 1px solid #d9dee7; margin: 14px 0; }}
+img {{ display: block; max-width: 100%; max-height: 215mm; margin: 6px auto 2px; }}
+p:has(> img) {{ text-align: center; break-inside: avoid; }}
 h2 {{ break-before: page; }}
 h1 + h2, hr + h2:first-of-type {{ break-before: auto; }}
 """

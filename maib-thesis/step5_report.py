@@ -5,7 +5,7 @@ Reads every file in results/ and produces:
   reports/main_table.csv / .md     macro-F1, recall on the critical classes, accuracy: mean +- std over seeds
   reports/per_class_recall.csv     recall of every class for every configuration (rarest class first)
   reports/per_class_recall.png     the same as a heat map
-  reports/confusion_matrix.png     confusion matrix of the best BERT configuration
+  reports/confusion_matrix.png     confusion matrix of config.MAIN_CONFIG (the proposed model)
 and prints the answers to the two research questions.
 
   python step5_report.py
@@ -143,13 +143,14 @@ recall = pd.DataFrame(
 recall.to_csv(reports / "per_class_recall.csv")
 
 fig, ax = plt.subplots(figsize=(1.1 * len(labels) + 3, 0.5 * len(names) + 2))
-image = ax.imshow(recall.values, cmap="RdYlGn", vmin=0, vmax=1, aspect="auto")
+image = ax.imshow(recall.values, cmap="Blues", vmin=0.5, vmax=1, aspect="auto")   # one hue: readable without colour vision
 ax.set_xticks(range(len(labels)), [f"{c}\n(n={test_support[c]['support']})" for c in recall.columns],
               rotation=45, ha="right", fontsize=8)
 ax.set_yticks(range(len(names)), names)
 for i in range(len(names)):
     for j in range(len(labels)):
-        ax.text(j, i, f"{recall.values[i, j]:.2f}", ha="center", va="center", fontsize=7)
+        ax.text(j, i, f"{recall.values[i, j]:.2f}", ha="center", va="center", fontsize=7,
+                color="white" if recall.values[i, j] > 0.82 else "black")
 ax.set_title("Test recall per class (mean over seeds, rarest class on the left)")
 fig.colorbar(image, ax=ax, fraction=0.02)
 fig.tight_layout()
@@ -158,7 +159,7 @@ fig.savefig(reports / "per_class_recall.png", dpi=150)
 # ----------------------------------------------------------------------------- confusion matrix
 bert_names = [n for n in names if not n.startswith("tfidf")]
 if bert_names:
-    best = max(bert_names, key=lambda n: stats[n]["macro_f1"][0])
+    best = config.MAIN_CONFIG if config.MAIN_CONFIG in bert_names else max(bert_names, key=lambda n: stats[n]["macro_f1"][0])
     counts = np.sum([np.array(r["test"]["confusion_matrix"]) for r in groups[best]], axis=0)
     share = counts / counts.sum(axis=1, keepdims=True)              # each row sums to 1 -> diagonal = recall
 

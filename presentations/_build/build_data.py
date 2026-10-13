@@ -22,8 +22,10 @@ def name(r):
 groups = defaultdict(list)
 for r in runs:
     groups[name(r)].append(r)
-order = ["tfidf_svm", "tfidf_svm_oversample", "bert + ce", "bert_bilstm + ce", "bert_bilstm_att + ce",
-         "bert_bilstm_att + wce", "bert_bilstm_att + focal", "bert_bilstm_att + cb", "bert_bilstm_att + ce [oversample]"]
+order = ["tfidf_svm", "tfidf_svm_oversample", "tfidf_svm_augment", "bert + ce", "bert_bilstm + ce", "bert_bilstm_att + ce",
+         "bert_bilstm_att + wce", "bert_bilstm_att + focal", "bert_bilstm_att + cb", "bert_bilstm_att + ce [oversample]",
+         "bert_bilstm_att + ce [augment]", "bert_bilstm_att + wce [augment]", "bert_bilstm_att + wce [h384_l1]",
+         "bert_bilstm_att + wce [h128_l2]", "bert_bilstm_att + wce [h384_l2]"]
 names = [n for n in order if n in groups] + sorted(n for n in groups if n not in order)
 labels = runs[0]["labels"]
 support = {c: runs[0]["test"]["per_class"][c]["support"] for c in labels}
@@ -79,14 +81,22 @@ SHORT = {"tfidf_svm": "TF-IDF + SVM", "tfidf_svm_oversample": "TF-IDF + SVM + ov
          "bert + ce": "BERT", "bert_bilstm + ce": "BERT + BiLSTM (reference)",
          "bert_bilstm_att + ce": "BERT + BiLSTM + Att", "bert_bilstm_att + wce": "  + Att + wce",
          "bert_bilstm_att + focal": "  + Att + focal", "bert_bilstm_att + cb": "  + Att + cb",
-         "bert_bilstm_att + ce [oversample]": "  + Att + oversample"}
+         "bert_bilstm_att + ce [oversample]": "  + Att + oversample",
+         "tfidf_svm_augment": "TF-IDF + SVM + LLM augmentation",
+         "bert_bilstm_att + ce [augment]": "  + Att + LLM augmentation",
+         "bert_bilstm_att + wce [augment]": "  + Att + wce + LLM augmentation",
+         "bert_bilstm_att + wce [h384_l1]": "  + Att + wce, BiLSTM 384 x 1",
+         "bert_bilstm_att + wce [h128_l2]": "  + Att + wce, BiLSTM 128 x 2",
+         "bert_bilstm_att + wce [h384_l2]": "  + Att + wce, BiLSTM 384 x 2"}
 def group_of(n):
     if n.startswith("tfidf"): return 0
     if "oversample" in n: return 3
+    if "augment" in n: return 4
+    if "[h" in n: return 1                                        # bigger BiLSTM: an architecture change
     if any(l in n for l in ("+ wce", "+ focal", "+ cb")): return 2
     return 1
-COL = ["#8f8e88", "#2a78d6", "#eb6834", "#1baf7a"]          # baseline grey, architecture, loss, oversampling
-GNAME = ["classic baseline", "architecture (loss = ce)", "imbalance-aware loss", "oversampling"]
+COL = ["#8f8e88", "#2a78d6", "#eb6834", "#1baf7a", "#eda100"]  # baseline grey, architecture, loss, oversampling, LLM
+GNAME = ["classic baseline", "architecture", "imbalance-aware loss", "oversampling", "LLM augmentation"]
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e6e5e0"
 
 fig, axes = plt.subplots(1, 2, figsize=(11, 0.42 * len(configs) + 1.6), sharey=True)
@@ -108,9 +118,9 @@ axes[0].set_ylim(-0.7, len(configs) - 0.2)
 handles = [plt.Line2D([], [], marker="o", ls="", color=COL[g], markersize=8, label=GNAME[g])
            for g in sorted({group_of(c["name"]) for c in configs})]
 fig.legend(handles=handles, loc="lower center", ncol=len(handles), frameon=False, fontsize=8.5,
-           bbox_to_anchor=(0.55, 0.0))
-fig.text(0.99, 0.005, "dot = mean over seeds, line = ± 1 std", ha="right", fontsize=7.5, color=MUTED)
-fig.tight_layout(rect=(0, 0.07, 1, 1))
+           bbox_to_anchor=(0.55, 0.025))
+fig.text(0.99, 0.004, "dot = mean over seeds, line = ± 1 std", ha="right", fontsize=7.5, color=MUTED)
+fig.tight_layout(rect=(0, 0.08, 1, 1))
 fig.savefig(OUT / "fig_results.png", dpi=200, facecolor="white")
 
 # ------------------------------------------------------------------ figure: learning curves (val macro-F1)
