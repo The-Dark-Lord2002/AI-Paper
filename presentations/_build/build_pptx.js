@@ -61,7 +61,9 @@ const T = (s, text, o) => s.addText(text, { isTextBox: true, fontFace: FONT, rtl
   valign: "top", margin: 0.05, fontSize: 15, color: INK, ...o });
 const title = (s, text) => s.addText(text, { placeholder: "title" });
 const card = (s, x, y, w, h, fill = TINT) => s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.08, fill: { color: fill }, line: { color: fill } });
-const bullets = (s, items, o) => T(s, items.map((t, i) => ({ text: t, options: { bullet: { indent: 14 }, breakLine: i < items.length - 1, paraSpaceAfter: 6 } })), o);
+// every bullet paragraph needs its own rtlMode, the text box setting does not reach them
+const bullets = (s, items, o) => T(s, items.map((t, i) => ({ text: t, options: { bullet: { indent: 14 }, rtlMode: true, align: "right",
+  breakLine: i < items.length - 1, paraSpaceAfter: 6 } })), o);
 const img = (s, file, x, y, w) => {
   const b = fs.readFileSync(file); const iw = b.readUInt32BE(16), ih = b.readUInt32BE(20);
   s.addImage({ path: file, x, y, w, h: w * ih / iw });

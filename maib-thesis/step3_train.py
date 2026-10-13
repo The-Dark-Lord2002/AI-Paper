@@ -2,13 +2,15 @@
 STEP 3 - Train and evaluate ONE BERT configuration (used for proposal steps 2b, 2c, 3 and 4).
 
   python step3_train.py --model bert_bilstm_att --loss focal --seed 1
+  python step3_train.py --model bert_bilstm_att --loss wce --seed 1 --lstm-hidden 384 --lstm-layers 2
+  python step3_train.py --model bert_bilstm_att --loss ce --seed 1 --augment      # after step7_augment.py
 
 What happens:
   1. split every report into BERT word-pieces (at most config.MAX_TOKENS)
   2. fine-tune BERT + the chosen model head with the chosen loss
   3. after every epoch, measure macro-F1 on the VALIDATION set and remember the best epoch
   4. go back to the best epoch and evaluate ONCE on the TEST set
-  5. save everything to results/<model>__<loss>__seed<seed>.json
+  5. save everything to results/<model>__<loss>__seed<seed>[__<tag>].json  (tag: oversample, augment, h384_l2, ...)
 
 The test set never influences any decision (which epoch, which settings). That is what makes the
 test score an honest estimate.
@@ -33,6 +35,14 @@ from models import MODEL_NAMES, IncidentClassifier
 
 def run_name(model_name, loss_name, seed, tag=""):
     return f"{model_name}__{loss_name}__seed{seed}" + (f"__{tag}" if tag else "")
+
+
+def default_tag(oversample=False, augment=False, lstm_hidden=config.LSTM_HIDDEN, lstm_layers=config.LSTM_LAYERS):
+    """Short label for everything that differs from the main table: "", "oversample", "augment", "h384_l2", ..."""
+    parts = (["oversample"] if oversample else []) + (["augment"] if augment else [])
+    if (lstm_hidden, lstm_layers) != (config.LSTM_HIDDEN, config.LSTM_LAYERS):
+        parts.append(f"h{lstm_hidden}_l{lstm_layers}")
+    return "_".join(parts)
 
 
 def set_seed(seed):
@@ -94,7 +104,10 @@ def predict(model, loader, device, use_amp, tokenizer=None):
 
 
 def train(model_name, loss_name, seed, batch_size=config.BATCH_SIZE, lr_bert=config.LR_BERT,
-          lr_head=config.LR_HEAD, epochs=config.EPOCHS, patience=config.PATIENCE, oversample=False, tag=""):
+          lr_head=config.LR_HEAD, epochs=config.EPOCHS, patience=config.PATIENCE, oversample=False,
+          augment=False, lstm_hidden=config.LSTM_HIDDEN, lstm_layers=config.LSTM_LAYERS, tag=None):
+    if tag is None:
+        tag = default_tag(oversample, augment, lstm_hidden, lstm_layers)
     name = run_name(model_name, loss_name, seed, tag)
     set_seed(seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -103,7 +116,7 @@ def train(model_name, loss_name, seed, batch_size=config.BATCH_SIZE, lr_bert=con
     print(f"\n===== {name} =====  device={device}  batch={batch_size} x {grad_accum} accumulation steps")
 
     # ------------------------------------------------------------------ data
-    train_df, val_df, test_df, labels = load_split()
+    train_df, val_df, test_df, labels = load_split(augmented=augment)
     label_to_id = {label: i for i, label in enumerate(labels)}
     tokenizer = AutoTokenizer.from_pretrained(config.BERT_NAME)
     train_loader = make_loader(tokenizer, train_df, label_to_id, batch_size, shuffle=True, seed=seed,
@@ -112,7 +125,7 @@ def train(model_name, loss_name, seed, batch_size=config.BATCH_SIZE, lr_bert=con
     test_loader = make_loader(tokenizer, test_df, label_to_id, config.EVAL_BATCH_SIZE, shuffle=False)
 
     # ------------------------------------------------------------------ model, loss, optimiser
-    model = IncidentClassifier(model_name, len(labels)).to(device)
+    model = IncidentClassifier(model_name, len(labels), lstm_hidden, lstm_layers).to(device)
     class_counts = np.bincount(train_df["label"].map(label_to_id), minlength=len(labels))
     loss_fn = make_loss(loss_name, class_counts).to(device)
 
@@ -180,7 +193,9 @@ def train(model_name, loss_name, seed, batch_size=config.BATCH_SIZE, lr_bert=con
         "run": name, "model": model_name, "loss": loss_name, "seed": seed, "tag": tag,
         "settings": {"bert": config.BERT_NAME, "batch_size": batch_size, "grad_accum": grad_accum,
                      "lr_bert": lr_bert, "lr_head": lr_head, "epochs": epochs, "patience": patience,
-                     "oversample": oversample, "max_tokens": config.MAX_TOKENS, "device": str(device)},
+                     "oversample": oversample, "augment": augment, "train_reports": len(train_df),
+                     "lstm_hidden": lstm_hidden, "lstm_layers": lstm_layers,
+                     "max_tokens": config.MAX_TOKENS, "device": str(device)},
         "labels": labels,
         "best_epoch": best_epoch,
         "train_minutes": round((time.time() - start) / 60, 1),
@@ -205,6 +220,9 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=config.BATCH_SIZE)
     parser.add_argument("--oversample", action="store_true", help="show rare classes more often (see config.py)")
+    parser.add_argument("--augment", action="store_true", help="train on real + rewritten reports (step 7)")
+    parser.add_argument("--lstm-hidden", type=int, default=config.LSTM_HIDDEN, help="BiLSTM units per direction")
+    parser.add_argument("--lstm-layers", type=int, default=config.LSTM_LAYERS, help="stacked BiLSTM layers")
     args = parser.parse_args()
-    train(args.model, args.loss, args.seed, batch_size=args.batch_size,
-          oversample=args.oversample, tag="oversample" if args.oversample else "")
+    train(args.model, args.loss, args.seed, batch_size=args.batch_size, oversample=args.oversample,
+          augment=args.augment, lstm_hidden=args.lstm_hidden, lstm_layers=args.lstm_layers)

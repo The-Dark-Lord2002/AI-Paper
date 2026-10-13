@@ -8,14 +8,16 @@ If BERT cannot clearly beat this, the extra cost of BERT is not justified.
            The number is high when the word is frequent in THIS report but rare in the whole collection.
   SVM    : a linear classifier that separates the classes in that vector space.
 
-It is trained twice: on the training set as it is, and with oversampling (reports of the smaller
-classes are copied at random until every class is as large as the biggest one). Only the TRAINING set
-is oversampled; the test set is never touched.
+It is trained on three versions of the training set (the test set is never touched):
+  tfidf_svm             the training set as it is
+  tfidf_svm_oversample  oversampling: reports of the smaller classes are copied at random until every
+                        class is as large as the biggest one
+  tfidf_svm_augment     real + LLM-rewritten reports of step 7 (only if step7_augment.py has been run)
 
 Runs on the CPU in a few seconds:
   python step2_tfidf_svm.py
 
-Output: results/tfidf_svm.json, results/tfidf_svm_oversample.json
+Output: results/tfidf_svm.json, results/tfidf_svm_oversample.json, results/tfidf_svm_augment.json
 """
 from pathlib import Path
 
@@ -40,7 +42,13 @@ def oversample(df, seed=0):
     return pd.concat(parts)
 
 
-for name, train_set in [("tfidf_svm", train), ("tfidf_svm_oversample", oversample(train))]:
+variants = [("tfidf_svm", train), ("tfidf_svm_oversample", oversample(train))]
+if (Path(config.DATA_DIR) / "train_augmented.csv").exists():
+    variants.append(("tfidf_svm_augment", load_split(augmented=True)[0]))
+else:
+    print("(no data/train_augmented.csv yet: run step7_augment.py to add the augmented variant)")
+
+for name, train_set in variants:
     model = make_pipeline(
         TfidfVectorizer(ngram_range=(1, 2), min_df=2, sublinear_tf=True),   # single words + word pairs
         LinearSVC(C=1.0),

@@ -43,7 +43,12 @@ groups = defaultdict(list)
 for run in runs:
     groups[config_name(run)].append(run)
 
-order = ["tfidf_svm", "tfidf_svm_oversample"] + [f"{m} + {l}" for m, l in config.EXPERIMENTS]
+LOSS_B = config.BILSTM_SIZE_LOSS
+order = (["tfidf_svm", "tfidf_svm_oversample", "tfidf_svm_augment"]
+         + [f"{m} + {l}" for m, l in config.EXPERIMENTS]
+         + [f"{m} + {l} [oversample]" for m, l in config.OVERSAMPLE_EXPERIMENTS]
+         + [f"{m} + {l} [augment]" for m, l in config.AUGMENT_EXPERIMENTS]
+         + [f"bert_bilstm_att + {LOSS_B} [h{h}_l{n}]" for h, n in config.BILSTM_SIZES])
 names = [n for n in order if n in groups] + sorted(n for n in groups if n not in order)
 
 labels = runs[0]["labels"]
@@ -107,6 +112,15 @@ questions = [
     compare("tfidf_svm", "tfidf_svm_oversample"),
     compare("bert_bilstm_att + ce", "bert_bilstm_att + ce [oversample]"),
     compare("bert_bilstm_att + wce", "bert_bilstm_att + ce [oversample]"),
+    "",
+    "Data augmentation with a language model (supervisor's request, step 7)",
+    compare("tfidf_svm", "tfidf_svm_augment"),
+    compare("bert_bilstm_att + ce", "bert_bilstm_att + ce [augment]"),
+    compare("bert_bilstm_att + ce [oversample]", "bert_bilstm_att + ce [augment]"),
+    compare("bert_bilstm_att + wce", "bert_bilstm_att + wce [augment]"),
+    "",
+    f"Bigger BiLSTM (supervisor's question), all with {LOSS_B}; the default is 128 units per direction, 1 layer",
+    *[compare(f"bert_bilstm_att + {LOSS_B}", f"bert_bilstm_att + {LOSS_B} [h{h}_l{n}]") for h, n in config.BILSTM_SIZES],
 ]
 
 with open(reports / "main_table.md", "w") as f:
