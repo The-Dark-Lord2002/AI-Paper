@@ -23,3 +23,6 @@ presentations/_build/paper_guide.html
 *.out
 *.synctex.gz
 *.toc
+
+# Compiled paper (rebuild with latexmk)
+docs/paper/main.pdf
