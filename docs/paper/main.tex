@@ -1,22 +1,36 @@
+% =====================================================================
+% main.tex -- IEEE conference paper
+% Build: pdflatex main -> bibtex main -> pdflatex main (x2)
+% Bibliography: refs.bib | Figures: figures/
+% =====================================================================
+
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
 
-\usepackage{cite}
-\usepackage{amsmath,amssymb,amsfonts}
-\usepackage{graphicx}
-\usepackage{booktabs}
-\usepackage{multirow}
-\usepackage{xcolor}
-\usepackage{url}
-\usepackage{tikz}
+% ---------------------------------------------------------------------
+% Packages
+% ---------------------------------------------------------------------
+\usepackage{cite}                    % sorted/compressed citations [1]-[3]
+\usepackage{amsmath,amssymb,amsfonts}% math
+\usepackage{graphicx}                % \includegraphics
+\usepackage{booktabs}                % \toprule, \midrule, \bottomrule
+\usepackage{multirow}                % multi-row table cells
+\usepackage{xcolor}                  % colors (used by \todo and TikZ)
+\usepackage{url}                     % \url{}
+\usepackage{tikz}                    % framework diagram (Fig. 1)
 \usetikzlibrary{positioning,arrows.meta,fit}
 
-% Format: IEEE conference template (version 6/27/2024); IEEEtran.cls is copied here.
+% ---------------------------------------------------------------------
+% Custom commands
+% ---------------------------------------------------------------------
 % Red notes for things still to check. Remove all of them before submission.
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 
 \begin{document}
 
+% =====================================================================
+% Title and authors
+% =====================================================================
 \title{Architecture or Imbalance Handling? A Controlled Evaluation of BERT-Based Models for Classifying Marine Incident Reports}
 
 % TODO: confirm the author list and order with the supervisor.
@@ -42,14 +56,20 @@ Shahrood, Iran\\
 
 \maketitle
 
+% =====================================================================
+% Abstract and keywords
+% =====================================================================
 \begin{abstract}
-Marine accident reports are a key source for safety learning, but their manual classification is slow, and the most safety-critical incident types are also the rarest. Recent work reported that adding a bidirectional LSTM (BiLSTM) on top of BERT improves the classification of maritime accident texts, but the compared models were trained with different hyperparameters, evaluated in a single run, and assessed mainly by accuracy. Using 5,762 publicly available incident reports of the UK Marine Accident Investigation Branch (MAIB) in nine classes, we compare a TF-IDF + SVM baseline with BERT, BERT + BiLSTM and BERT + BiLSTM + attention under identical training settings and two random seeds. We further evaluate four loss functions, class-balanced oversampling, and data augmentation with a large language model (LLM) filtered by a label-consistency check. All BERT-based models outperform the baseline (macro-F1 0.885 vs.\ up to 0.915). The BiLSTM and attention layers bring no gain beyond seed-to-seed variation, whereas inverse-frequency weighted cross-entropy raises macro-F1 from 0.905 to 0.914 and critical-class recall from 0.845 to 0.868. Oversampling and LLM augmentation do not add to this gain for BERT, although augmentation improves the SVM baseline. Error and attention analyses indicate that the remaining errors stem mainly from the single-label annotation of multi-event reports rather than from model capacity.
+\todo{write abstract}
 \end{abstract}
 
 \begin{IEEEkeywords}
 maritime safety, accident reports, text classification, BERT, class imbalance, data augmentation
 \end{IEEEkeywords}
 
+% =====================================================================
+% 1. Introduction
+%    Problem, challenges, gap in prior work, RQ1-RQ3, contributions
 % =====================================================================
 \section{Introduction}
 
@@ -66,10 +86,13 @@ In this paper, we revisit this question on a public dataset under a controlled p
   \item \textbf{RQ3 (interpretation):} What do attention weights and residual errors reveal about the limits of the task?
 \end{itemize}
 
+% Contributions
 Our contributions are as follows: (1) a controlled evaluation of BERT, BERT + BiLSTM and BERT + BiLSTM + attention with a shared encoder, an identical training recipe, multiple seeds, a classical baseline, and macro-F1 and per-class recall as metrics; (2) a systematic comparison of three loss functions, oversampling and LLM paraphrasing with a label-consistency filter, with a focus on safety-critical classes; (3) an error and attention analysis showing that the remaining errors are concentrated between cause and consequence classes; and (4) a fully reproducible pipeline on public data.
 
 The rest of the paper follows the structure of \cite{zhao2025causation}: Section~\ref{sec:lit} reviews related work, Section~\ref{sec:method} introduces the models and imbalance treatments, Section~\ref{sec:case} presents the case study, Section~\ref{sec:disc} discusses the findings, and Section~\ref{sec:conc} concludes.
 
+% =====================================================================
+% 2. Literature Review
 % =====================================================================
 \section{Literature Review}\label{sec:lit}
 
@@ -82,8 +105,14 @@ Zhao et al.\ \cite{zhao2025causation} classified accident causes in reports from
 Methods for imbalanced classification act either on the loss or on the data. Loss-level methods include inverse-frequency weighting, the focal loss \cite{lin2017focal}, which down-weights easy examples, and the class-balanced loss \cite{cui2019classbalanced}, which uses the effective number of samples. Data-level methods include random oversampling and synthetic sampling such as SMOTE \cite{chawla2002smote}, which is not directly suited to text. For text, data augmentation ranges from simple edits \cite{wei2019eda} and back-translation \cite{sennrich2016improving} to generation with language models filtered by a classifier \cite{anabytavor2020lambada}. These methods are usually studied in isolation; we compare them on one dataset and with one protocol.
 
 % =====================================================================
+% 3. Methodology
+%    3.1 Models (BERT / BiLSTM / attention head), Fig. 1
+%    3.2 Imbalance treatments (losses, oversampling, LLM augmentation)
+%    3.3 Four-stage evaluation framework
+% =====================================================================
 \section{Methodology}\label{sec:method}
 
+% ---------------------------------------------------------------------
 \subsection{Classification Models}
 
 All neural models share the same BERT encoder and differ only in the classification head (Fig.~\ref{fig:framework}). Consecutive configurations therefore differ in exactly one component, which isolates its effect.
@@ -103,32 +132,50 @@ Instead of keeping only the final states, the proposed model pools all BiLSTM st
 \end{equation}
 where $\mathbf{W}$ and $\mathbf{v}$ are trainable. The weights $\alpha_t$ are stored for analysis. In all models, the pooled vector passes through dropout (0.1) and a linear layer with nine outputs.
 
+% --- Fig. 1: framework diagram (drawn with TikZ) ---------------------
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[
   node distance=3.5mm,
-  box/.style={draw, rounded corners=2pt, align=center, font=\scriptsize, minimum height=6mm, inner sep=2pt},
+  box/.style={draw, rounded corners=2pt, align=center, font=\scriptsize,
+              minimum height=6mm, inner sep=2pt},
   arr/.style={-{Stealth[length=1.6mm]}, thick}]
-  \node[box, text width=40mm] (in) {Incident report (max.\ 192 word-pieces)};
-  \node[box, text width=40mm, below=of in, fill=blue!8] (bert) {BERT-base encoder (12 layers)\\768-d vector per token};
-  \node[box, text width=19mm, below left=6mm and -10mm of bert] (cls) {(a) \texttt{[CLS]}\\vector};
-  \node[box, text width=19mm, below=6mm of bert] (lstm) {(b) BiLSTM\\final states};
-  \node[box, text width=19mm, below right=6mm and -10mm of bert, fill=orange!12] (att) {(c) BiLSTM +\\attention pooling};
-  \node[box, text width=40mm, below=14mm of lstm] (clf) {Dropout 0.1 $\rightarrow$ linear $\rightarrow$ 9 classes};
-  \node[box, text width=40mm, below=of clf, fill=green!8] (loss) {Loss: ce / wce / focal / cb\\Data: original / oversampled / augmented};
+
+  % Input and shared encoder
+  \node[box, text width=40mm] (in)
+    {Incident report (max.\ 192 word-pieces)};
+  \node[box, text width=40mm, below=of in, fill=blue!8] (bert)
+    {BERT-base encoder (12 layers)\\768-d vector per token};
+
+  % Three alternative heads: (a) plain BERT, (b) + BiLSTM, (c) + attention
+  \node[box, text width=19mm, below left=6mm and -10mm of bert] (cls)
+    {(a) \texttt{[CLS]}\\vector};
+  \node[box, text width=19mm, below=6mm of bert] (lstm)
+    {(b) BiLSTM\\final states};
+  \node[box, text width=19mm, below right=6mm and -10mm of bert, fill=orange!12] (att)
+    {(c) BiLSTM +\\attention pooling};
+
+  % Shared classifier and training options
+  \node[box, text width=40mm, below=14mm of lstm] (clf)
+    {Dropout 0.1 $\rightarrow$ linear $\rightarrow$ 9 classes};
+  \node[box, text width=40mm, below=of clf, fill=green!8] (loss)
+    {Loss: ce / wce / focal / cb\\Data: original / oversampled / augmented};
+
+  % Arrows
   \draw[arr] (in) -- (bert);
   \draw[arr] (bert.south) -- (cls.north);
   \draw[arr] (bert.south) -- (lstm.north);
   \draw[arr] (bert.south) -- (att.north);
-  \draw[arr] (cls.south) -- (clf.north);
+  \draw[arr] (cls.south)  -- (clf.north);
   \draw[arr] (lstm.south) -- (clf.north);
-  \draw[arr] (att.south) -- (clf.north);
+  \draw[arr] (att.south)  -- (clf.north);
   \draw[arr] (clf) -- (loss);
 \end{tikzpicture}
 \caption{Overview of the framework. The three models share the encoder and the training recipe and differ only in the head; the imbalance treatments are applied to the head with attention.}
 \label{fig:framework}
 \end{figure}
 
+% ---------------------------------------------------------------------
 \subsection{Class-Imbalance Treatments}
 
 \subsubsection{Loss functions}
@@ -140,17 +187,25 @@ For the SVM baseline, training reports of the smaller classes are duplicated at 
 \subsubsection{LLM-based data augmentation}
 Oversampling repeats existing reports and adds no new information. We therefore paraphrase real training reports of the rare classes with \texttt{Qwen2.5-1.5B-Instruct} \cite{qwen2024qwen25}, run locally, until each class with fewer than 400 training reports reaches 400. The prompt asks the model to keep every fact and not to name the incident category, so that the classifier cannot learn a shortcut. A rewrite is discarded if its length ratio to the original lies outside $[0.5, 2]$, its word overlap (Jaccard) lies outside $[0.15, 0.8]$, or it duplicates another rewrite. Following LAMBADA \cite{anabytavor2020lambada}, a TF-IDF + SVM trained only on real reports must also assign each rewrite to the class of its source report; rejected rewrites are replaced. The validation and test sets are never shown to the LLM.
 
+% ---------------------------------------------------------------------
 \subsection{Framework}
 
 The evaluation proceeds in four stages. (i) The data are cleaned and split once. (ii) The SVM baseline and the three BERT-based models are trained with ce to answer RQ1. (iii) The imbalance treatments are applied to the attention model to answer RQ2. (iv) The best model is analyzed through its confusion matrix, per-class recall and attention weights to answer RQ3.
 
 % =====================================================================
+% 4. Case Study
+%    4.1 Data (Table I)
+%    4.2 Modeling: baseline, training settings (Table II), metrics
+%    4.3 Results: RQ1 and RQ2 (Tables III and IV)
+% =====================================================================
 \section{Case Study}\label{sec:case}
 
+% ---------------------------------------------------------------------
 \subsection{Data}
 
 We use the public MAIB incident dataset \cite{munaev2025maib}, which contains 5,768 short narratives labelled by MAIB with the main event type. We keep the original labels. After removing one exact duplicate and two classes with fewer than 20 reports (Hull Failure, 3; Non-accidental Event, 2), 5,762 reports in nine classes remain. Reports have a median length of 59 words (mean 66.8). The ratio between the largest and the smallest class is 16.8. We split the data once into training (70\%), validation (15\%) and test (15\%) sets, stratified by class and with a fixed seed, and use the same split for all models (Table~\ref{tab:data}). Fire, Capsizing and Flooding are treated as safety-critical classes.
 
+% --- Table I: class distribution and split sizes ---------------------
 \begin{table}[t]
 \caption{Class distribution of the MAIB dataset after cleaning. * marks safety-critical classes.}
 \label{tab:data}
@@ -175,6 +230,7 @@ Total & 5,762 & 4,033 & 864 & 865 \\
 \end{tabular}
 \end{table}
 
+% ---------------------------------------------------------------------
 \subsection{Modeling}
 
 \subsubsection{Baseline}
@@ -183,6 +239,7 @@ The classical baseline is a linear SVM \cite{joachims1998text} on TF-IDF feature
 \subsubsection{Training settings}
 All BERT-based models use the same recipe (Table~\ref{tab:settings}), so that differences in results can only come from the head, the loss or the data. For each run, the epoch with the highest validation macro-F1 is selected, and the test set is used only once, at the end of the run. Each configuration is trained with two seeds, and we report the mean and standard deviation. One run took about 75 minutes on a laptop GPU (NVIDIA GTX 1650 Ti, 4 GB), and about 91 minutes with the augmented training set.
 
+% --- Table II: shared training recipe --------------------------------
 \begin{table}[t]
 \caption{Training settings shared by all BERT-based models.}
 \label{tab:settings}
@@ -209,10 +266,14 @@ Seeds & 1 and 2 \\
 \subsubsection{Evaluation metrics}
 Our main metric is macro-F1, the unweighted mean of the per-class F1 scores, which gives every class the same weight. We also report the mean recall of the three safety-critical classes (critical recall) and accuracy, the latter only for comparison with prior work. On this dataset, a model that never predicts Capsizing loses only about 1.7 points of accuracy but loses about 0.1 of macro-F1. We call a difference between two configurations \emph{larger than seed variation} if it exceeds the larger of their seed standard deviations; this is a descriptive rule, not a significance test.
 
+% ---------------------------------------------------------------------
 \subsection{Classification Results}
 
 Table~\ref{tab:results} reports the test results. All BERT-based models outperform the TF-IDF + SVM baseline in macro-F1 (0.898--0.915 vs.\ 0.885).
 
+% --- Table III: main results -----------------------------------------
+% Blocks: SVM baseline | architectures (RQ1) | imbalance treatments (RQ2)
+% Values: mean{\tiny +- std} over two seeds; best per column in bold.
 \begin{table}[t]
 \caption{Test results (865 reports), mean $\pm$ standard deviation over two seeds. Att: BERT + BiLSTM + attention.}
 \label{tab:results}
@@ -247,6 +308,7 @@ Att + wce + LLM augm. & \textbf{0.915}{\tiny$\pm$.002} & 0.868{\tiny$\pm$.016} &
 
 Table~\ref{tab:perclass} shows the number of correctly classified test reports per class. The gains of wce come mainly from Capsizing (+1 report), Collision (+1.5) and Loss of Control (+3), at a cost of 1.5 reports in the largest class.
 
+% --- Table IV: correct test reports per class ------------------------
 \begin{table}[t]
 \caption{Correctly classified test reports per class (mean over seeds), rarest class first.}
 \label{tab:perclass}
@@ -271,20 +333,28 @@ Accident (250) & 245 & 246 & 244.5 & 246 & 244.5 \\
 \end{table}
 
 % =====================================================================
+% 5. Discussion
+%    Model comparison (RQ1), imbalance treatments (RQ2),
+%    attention and error analysis (RQ3, Fig. 2, Table V), limitations
+% =====================================================================
 \section{Discussion}\label{sec:disc}
 
+% ---------------------------------------------------------------------
 \subsection{Model Comparison}
 
 Under identical settings, neither the BiLSTM nor the attention layer improved on plain BERT beyond seed variation. A plausible explanation is that BERT is already bidirectional, with 12 layers of self-attention, and the reports are short (median 59 words), so a recurrent layer adds little information. The numbers of \cite{zhao2025causation} are not directly comparable to ours, since the task and the data differ. Their claim, however, can be tested, and under a controlled protocol we did not observe the advantage of the BiLSTM. Their own parameter analysis also shows that changing a single hyperparameter moved test accuracy between 0.875 and 0.898, which underlines the need for identical settings when architectures are compared.
 
+% ---------------------------------------------------------------------
 \subsection{Imbalance Treatments}
 
 A one-line change of the loss (wce) helped more than additional layers. Oversampling did not match it, although in expectation it gives each class the same total weight as wce; its random sampling adds noise, and in each epoch many reports of the large classes are not seen at all. LLM augmentation helped the SVM, whose bag-of-words features benefit from new vocabulary, but not BERT, which already generalizes over paraphrases through pre-training. Together with the small effect of oversampling, this suggests that the remaining errors on rare classes are semantic rather than due to a lack of examples.
 
+% ---------------------------------------------------------------------
 \subsection{Attention and Error Analysis}
 
 Fig.~\ref{fig:cm} shows the confusion matrix of the best single-component model (Att + wce). The most frequent confusions are between Damage and Loss of Control (13 and 9 reports over both seeds), Contact and Collision (8), and Grounding and Loss of Control (6). These are pairs of cause and consequence: a report of a propulsion failure followed by a grounding can be labelled with either event. Multi-event reports, such as a vessel striking a lock wall after which a crew member falls overboard, and rare technical terms such as \emph{girting} and \emph{allided} account for further errors.
 
+% --- Fig. 2: confusion matrix (PDF generated by the analysis code) ---
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/confusion_matrix.pdf}
@@ -292,6 +362,7 @@ Fig.~\ref{fig:cm} shows the confusion matrix of the best single-component model 
 \label{fig:cm}
 \end{figure}
 
+% --- Table V: top attention words per class --------------------------
 \begin{table}[t]
 \caption{Words with the highest mean attention weight per class (Att + wce, test set; generic words such as \emph{vessel} omitted).}
 \label{tab:attention}
@@ -318,15 +389,21 @@ Table~\ref{tab:attention} lists the words with the highest mean attention weight
 
 Three observations suggest that the ceiling of about 0.91 macro-F1 comes from the single-label annotation rather than from model capacity: the dominant confusions are cause--consequence pairs, related classes share top attention words (\emph{contact} appears among the top words of Collision), and a linear TF-IDF baseline comes within 0.03 macro-F1 of the best model.
 
+% ---------------------------------------------------------------------
 \subsection{Limitations and Improvements}
 
 The results are based on two seeds and a single data split, and no significance test has been performed yet. The test set contains only 15 Capsizing reports, so one report equals 6.7 points of recall, and differences of one or two reports between BERT models are not reliable. Training was limited to five epochs, $\gamma$ and $\beta$ were not tuned, and only BERT-base was evaluated. The 1.5B-parameter LLM occasionally changed minor details, and its rewrites are more formal than the original reports. Future work should add seeds and paired bootstrap or McNemar tests \cite{dietterich1998approximate}, evaluate domain-adapted encoders \cite{black2026domain}, and explore multi-label annotation that separates causes from consequences.
 
 % =====================================================================
+% 6. Conclusions
+% =====================================================================
 \section{Conclusions}\label{sec:conc}
 
 We compared BERT-based architectures and imbalance treatments for classifying 5,762 public MAIB incident reports under a controlled protocol. All BERT models outperformed a TF-IDF + SVM baseline, but the BiLSTM and attention layers proposed in prior work did not improve on plain BERT beyond seed variation. Weighted cross-entropy was the most effective treatment, raising macro-F1 to 0.914 and critical-class recall to 0.868, while oversampling and LLM augmentation did not add to it. The residual errors are concentrated between cause and consequence classes, which indicates that better annotation schemes are a more promising direction than more complex architectures. Code and results are publicly available.\todo{add GitHub link once the repository is public}
 
+% =====================================================================
+% References (entries in refs.bib)
+% =====================================================================
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
 
