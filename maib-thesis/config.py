@@ -49,9 +49,9 @@ EXPERIMENTS = [
     ("bert_bilstm_att", "cb"),        # 4c  + class-balanced (effective number) weights
 ]
 
-# The configuration the thesis proposes. Step 5 draws its confusion matrix. Differences smaller than the
-# seed-to-seed noise should not decide which model a figure shows, so this is fixed, not "the best mean".
-MAIN_CONFIG = "bert_bilstm_att + wce"
+# The configuration reported as the best one: the highest mean test macro-F1 of all runs (0.915).
+# Step 5 draws its confusion matrix. It is fixed here so that a new run does not silently change the figure.
+MAIN_CONFIG = "bert_bilstm_att + wce [augment]"
 
 # Oversampling (supervisor's request): instead of changing the loss, show the model the rare classes more often.
 # Training reports are drawn with probability 1 / (size of their class), so every class is seen about equally

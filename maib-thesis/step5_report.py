@@ -5,7 +5,7 @@ Reads every file in results/ and produces:
   reports/main_table.csv / .md     macro-F1, recall on the critical classes, accuracy: mean +- std over seeds
   reports/per_class_recall.csv     recall of every class for every configuration (rarest class first)
   reports/per_class_recall.png     the same as a heat map
-  reports/confusion_matrix.png     confusion matrix of config.MAIN_CONFIG (the proposed model)
+  reports/confusion_matrix.png     confusion matrix of config.MAIN_CONFIG (the best configuration)
 and prints the answers to the two research questions.
 
   python step5_report.py

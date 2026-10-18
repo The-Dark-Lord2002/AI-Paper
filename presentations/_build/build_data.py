@@ -130,14 +130,14 @@ BAR_GROUPS = [  # (name in results, label), groups separated by a gap
      ("tfidf_svm_augment", "TF-IDF + SVM + LLM augmentation")],
     [("bert + ce", "BERT"), ("bert_bilstm + ce", "BERT + BiLSTM (reference paper)"),
      ("bert_bilstm_att + ce", "BERT + BiLSTM + Attention")],
-    [("bert_bilstm_att + wce", "Proposed: + Attention + wce"), ("bert_bilstm_att + focal", "+ Attention + focal"),
+    [("bert_bilstm_att + wce", "+ Attention + wce"), ("bert_bilstm_att + focal", "+ Attention + focal"),
      ("bert_bilstm_att + cb", "+ Attention + cb")],
     [("bert_bilstm_att + ce [oversample]", "+ Attention + oversampling"),
      ("bert_bilstm_att + ce [augment]", "+ Attention + LLM augmentation"),
      ("bert_bilstm_att + wce [augment]", "+ Attention + wce + LLM augmentation")],
-    [("bert_bilstm_att + wce [h384_l1]", "Proposed, BiLSTM 384 units x 1 layer"),
-     ("bert_bilstm_att + wce [h128_l2]", "Proposed, BiLSTM 128 units x 2 layers"),
-     ("bert_bilstm_att + wce [h384_l2]", "Proposed, BiLSTM 384 units x 2 layers")],
+    [("bert_bilstm_att + wce [h384_l1]", "+ Attention + wce, BiLSTM 384 x 1 layer"),
+     ("bert_bilstm_att + wce [h128_l2]", "+ Attention + wce, BiLSTM 128 x 2 layers"),
+     ("bert_bilstm_att + wce [h384_l2]", "+ Attention + wce, BiLSTM 384 x 2 layers")],
 ]
 by_name = {c["name"]: c for c in configs}
 rows, y = [], 0.0
@@ -150,16 +150,17 @@ for key, title, fname in [("macro_f1", "Macro-F1 on the test set", "fig_macro_f1
                           ("critical_recall", "Recall on the critical classes (fire, capsizing, flooding)",
                            "fig_critical_recall.png")]:
     fig, ax = plt.subplots(figsize=(9, 0.36 * len(rows) + 1.9))
+    top = max(round(c[key][0], 3) for _, _, c in rows)               # bold the highest value, as in the tables
     for yy, label, c in rows:
         m, sd = c[key]
         ax.barh(yy, m, height=0.72, color=COL[group_of(c["name"])], zorder=2)
         if sd > 0:
             ax.errorbar(m, yy, xerr=sd, color=INK, lw=1.1, capsize=3, zorder=3)
         ax.text(m + sd + 0.012, yy, f"{m:.3f}" + (f" ± {sd:.3f}" if c["seeds"] > 1 else ""), va="center",
-                fontsize=8.5, color=INK, fontweight="bold" if label.startswith("Proposed:") else "normal")
+                fontsize=8.5, color=INK, fontweight="bold" if round(m, 3) == top else "normal")
     ax.set_yticks([r[0] for r in rows], [r[1] for r in rows], fontsize=9, color=INK)
-    for t in ax.get_yticklabels():
-        if t.get_text().startswith("Proposed:"): t.set_fontweight("bold")
+    for t, (_, _, c) in zip(ax.get_yticklabels(), rows):
+        if round(c[key][0], 3) == top: t.set_fontweight("bold")
     ax.invert_yaxis()
     ax.set_xlim(0, 1.16); ax.set_xticks(np.arange(0, 1.01, 0.1))
     ax.set_xlabel(title.split(" (")[0].replace(" on the test set", "") + " (mean over seeds; error bar = ± 1 std)",

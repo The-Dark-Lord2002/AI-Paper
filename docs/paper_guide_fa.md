@@ -260,7 +260,7 @@ c       = Σ alpha_t · h_t       # weighted average = one vector for the whole 
 
 **ماتریس درهم‌ریختگی (confusion matrix):** جدولی که می‌گوید هر کلاس واقعی، با چه کلاسی پیش‌بینی شده است. قطر اصلی = پیش‌بینی‌های درست.
 
-**سه معیار پایه، با مثال واقعی** (بهترین مدل، seed ۱، کلاس Capsizing):
+**سه معیار پایه، با مثال واقعی** (مدل Att + wce، seed ۱، کلاس Capsizing):
 
 - **Recall** = از ۱۵ گزارش واقعی Capsizing، مدل ۱۲ تا را پیدا کرد ← **0.80**. یعنی «چندتا را از دست ندادیم؟»
 - **Precision** = مدل ۱۲ بار گفت Capsizing و هر ۱۲ بار درست بود ← **1.00**. یعنی «چقدر هشدار اشتباه دادیم؟»
@@ -488,18 +488,20 @@ Fire و Collision واژه‌های شاخص دارند (fire، collided) و ب�
 | TF-IDF + SVM | 0.885 | 0.827 | 0.914 |
 | TF-IDF + SVM + oversampling | 0.885 | 0.834 | 0.917 |
 | TF-IDF + SVM + LLM augmentation | 0.889 | 0.850 | 0.916 |
-| BERT | 0.898 ± 0.007 | 0.873 ± 0.008 | 0.927 ± 0.005 |
+| BERT | 0.898 ± 0.007 | **0.873 ± 0.008** | 0.927 ± 0.005 |
 | BERT + BiLSTM (reference) | 0.901 ± 0.004 | 0.851 ± 0.040 | 0.928 ± 0.001 |
 | BERT + BiLSTM + Att (ce) | 0.905 ± 0.004 | 0.845 ± 0.016 | 0.931 ± 0.002 |
-| **+ Att + wce** | **0.914 ± 0.006** | **0.868 ± 0.016** | **0.935 ± 0.003** |
+| + Att + wce | 0.914 ± 0.006 | 0.868 ± 0.016 | **0.935 ± 0.003** |
 | + Att + focal | 0.905 ± 0.001 | 0.858 ± 0.012 | 0.930 ± 0.001 |
-| + Att + cb | 0.910 ± 0.001 | 0.857 ± 0.000 | 0.935 ± 0.004 |
+| + Att + cb | 0.910 ± 0.001 | 0.857 ± 0.000 | **0.935 ± 0.004** |
 | + Att + ce + oversampling | 0.909 ± 0.001 | 0.851 ± 0.008 | 0.931 ± 0.002 |
 | + Att + ce + LLM augmentation | 0.908 ± 0.009 | 0.862 ± 0.008 | 0.932 ± 0.004 |
-| + Att + wce + LLM augmentation | 0.915 ± 0.002 | 0.868 ± 0.016 | 0.935 ± 0.002 |
+| **+ Att + wce + LLM augmentation (best)** | **0.915 ± 0.002** | 0.868 ± 0.016 | **0.935 ± 0.002** |
 | + Att + wce, BiLSTM 384 × 1 | 0.909 ± 0.003 | 0.862 ± 0.007 | 0.929 ± 0.009 |
-| + Att + wce, BiLSTM 128 × 2 | 0.910 ± 0.007 | 0.873 ± 0.008 | 0.935 ± 0.007 |
+| + Att + wce, BiLSTM 128 × 2 | 0.910 ± 0.007 | **0.873 ± 0.008** | **0.935 ± 0.007** |
 | + Att + wce, BiLSTM 384 × 2 | 0.913 ± 0.001 | 0.868 ± 0.016 | 0.932 ± 0.004 |
+
+**قانون جدول:** در هر ستون **بیشترین مقدار** را پررنگ کن، و متن باید همان پیکربندی را «بهترین» بنامد. اگر بهترین را به دلیل دیگری (مثلاً سادگی) انتخاب نمی‌کنی، صریح بنویس چرا. (نظر استاد راهنما: متن و جدول نباید با هم تناقض داشته باشند.)
 
 شکل مقاله: `presentations/_build/build_data.py` دو نمودار میله‌ای می‌سازد: `fig_macro_f1.png` و `fig_critical_recall.png`. هر معیار در یک شکل جدا، و محور از صفر (نظر استاد راهنما: نمایش نقطه‌ای دو معیار کنار هم مناسب نیست).
 
@@ -570,7 +572,7 @@ Fire و Collision واژه‌های شاخص دارند (fire، collided) و ب�
 
 **در مقاله حتماً بنویس:** با ۱۵ گزارش Capsizing در آزمون، هر گزارش ۶.۷ واحد recall است. تفاوت‌های ۱ تا ۲ گزارشی بین مدل‌های BERT قابل اتکا نیست. چیزی که قطعی است برتری **همه‌ی** مدل‌های BERT بر SVM در این کلاس است.
 
-### ۸-۵. اشتباه‌های پرتکرار (مدل پیشنهادی Att + wce، جمع دو seed)
+### ۸-۵. اشتباه‌های پرتکرار (بهترین پیکربندی Att + wce + LLM augmentation، جمع دو seed)
 
 | کلاس واقعی | پیش‌بینی | تعداد |
 |---|---|---:|
@@ -581,7 +583,17 @@ Fire و Collision واژه‌های شاخص دارند (fire، collided) و ب�
 | Grounding | Loss of Control | 6 |
 | Flooding | Grounding | 5 |
 
-شکل مقاله: `maib-thesis/reports/confusion_matrix.png` (همین مدل؛ در `config.MAIN_CONFIG` تعیین می‌شود).
+جدول بالا برای Att + wce است. در بهترین پیکربندی (wce + LLM augmentation) عددها کمی فرق می‌کند؛ تعداد کل اشتباه‌ها در هر دو ۱۱۲ از ۱٬۷۳۰ است:
+
+| کلاس واقعی | پیش‌بینی | wce + LLM augmentation | wce |
+|---|---|---:|---:|
+| Damage / Loss of Equipment | Loss of Control | 17 | 13 |
+| Damage / Loss of Equipment | Contact | 8 | 7 |
+| Contact | Collision | 8 | 8 |
+| Loss of Control | Damage / Loss of Equipment | 7 | 9 |
+| Grounding | Loss of Control | 6 | 6 |
+
+شکل مقاله: `maib-thesis/reports/confusion_matrix.png` (بهترین پیکربندی؛ در `config.MAIN_CONFIG` تعیین می‌شود).
 
 ### ۸-۶. واژه‌های پروزن attention (Table 5 مقاله)
 
@@ -619,7 +631,7 @@ Discussion جواب «**یعنی چه؟**» و «**چرا؟**» است. برای
 
 **۳. نمونه‌گیری دوباره اطلاعات جدید نمی‌دهد.** oversampling در امید ریاضی همان وزن wce را دارد، ولی با نویز نمونه‌گیری. روی SVM هم اثری نداشت. خطاهای Capsizing احتمالاً **معنایی‌اند**، نه **کمّی**.
 
-**۳ب. افزایش داده با LLM واژه‌ی تازه می‌آورد، نه اطلاعات تازه.** LLM augmentation روی SVM کمی کمک کرد (+0.005) ولی روی BERT نه. توضیح: SVM هر واژه را ویژگی جدا می‌بیند؛ مترادف تازه برایش ویژگی تازه است. BERT از پیش‌آموزش می‌داند capsized و overturned هم‌معنا هستند؛ بازنویسی برایش همان اطلاعات قبلی است. این با Longpre et al. (2020) هم‌خوان است: افزایش داده‌ی عمومی (بازنویسی، ترجمه‌ی رفت‌وبرگشتی) به مدل‌های پیش‌آموزش‌دیده کمک چندانی نمی‌کند. wce، oversampling و augmentation هر سه سهم کلاس‌های کمیاب را بالا می‌برند؛ وقتی wce این سهم را درست کرده باشد، بقیه چیزی اضافه نمی‌کنند.
+**۳ب. افزایش داده با LLM واژه‌ی تازه می‌آورد، نه اطلاعات تازه.** LLM augmentation روی SVM کمی کمک کرد (+0.005)، روی BERT با ce در حد نوسان بود (+0.003)، و همراه با wce بیشترین Macro-F1 همه‌ی آزمایش‌ها را داد (0.915)؛ اما برتری‌اش بر wce تنها فقط 0.001 است. توضیح: SVM هر واژه را ویژگی جدا می‌بیند؛ مترادف تازه برایش ویژگی تازه است. BERT از پیش‌آموزش می‌داند capsized و overturned هم‌معنا هستند؛ بازنویسی برایش همان اطلاعات قبلی است. این با Longpre et al. (2020) هم‌خوان است: افزایش داده‌ی عمومی (بازنویسی، ترجمه‌ی رفت‌وبرگشتی) به مدل‌های پیش‌آموزش‌دیده کمک چندانی نمی‌کند. wce، oversampling و augmentation هر سه سهم کلاس‌های کمیاب را بالا می‌برند؛ وقتی wce این سهم را درست کرده باشد، افزایش داده فقط کمی اضافه می‌کند (0.001) و پراکندگی بین اجراها را کم می‌کند (0.006 ← 0.002).
 
 **۴. سقف حدود ۰.۹۱ از ابهام برچسب می‌آید.** شواهد:
 
@@ -688,7 +700,7 @@ Discussion جواب «**یعنی چه؟**» و «**چرا؟**» است. برای
 1. **زمینه (۱ جمله):** *Marine accident reports are a key source for safety learning, but their manual classification is slow and the most safety-critical incident types are rare.*
 2. **شکاف (۱ جمله):** *Prior work reported gains from adding BiLSTM layers to BERT, but under non-identical training settings and single runs.*
 3. **روش (۲ جمله):** *Using 5,762 public MAIB reports in nine classes, we compare a TF-IDF + SVM baseline with BERT, BERT + BiLSTM and BERT + BiLSTM + attention under identical settings and multiple seeds, and evaluate four loss functions, oversampling and LLM-based data augmentation with a label-consistency filter.*
-4. **نتایج (۲ تا ۳ جمله):** *All BERT models outperform the baseline (macro-F1 0.885 vs. up to 0.915). BiLSTM and attention layers bring no gain beyond seed variance, even with up to eight times more BiLSTM parameters, whereas inverse-frequency weighted cross-entropy improves macro-F1 by 0.009. LLM-based paraphrasing of rare-class reports helps the TF-IDF baseline slightly but adds nothing beyond the weighted loss for BERT.*
+4. **نتایج (۲ تا ۳ جمله):** *All BERT models outperform the baseline (macro-F1 0.885 vs. up to 0.915). BiLSTM and attention layers bring no gain beyond seed variance, even with up to eight times more BiLSTM parameters, whereas inverse-frequency weighted cross-entropy improves macro-F1 by 0.009. Adding LLM-based paraphrases of rare-class reports gives the best configuration (macro-F1 0.915), although its gain over the weighted loss alone (0.001) is within seed variance.*
 5. **پیام (۱ جمله):** *Error and attention analyses indicate that the remaining errors stem mainly from single-label annotation of multi-event reports rather than from model capacity.*
 
 ### فهرست جدول‌ها و شکل‌ها
