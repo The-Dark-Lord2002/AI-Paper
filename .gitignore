@@ -13,3 +13,17 @@ presentations/_build/out/
 presentations/_build/guide.html
 presentations/_build/paper_guide.html
 presentations/_build/update.html
+
+# LaTeX build files
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+
+# Compiled paper (rebuild with latexmk)
+docs/paper/main.pdf
