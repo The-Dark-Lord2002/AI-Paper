@@ -36,22 +36,22 @@
 % TODO: confirm the author list and order with the supervisor.
 \author{
 \IEEEauthorblockN{Mohammad Mahdi Arab}
-\IEEEauthorblockA{\textit{Faculty of Computer Engineering}\\
+\IEEEauthorblockA{\textit{Department of Computer Engineering}\\
 \textit{Shahrood University of Technology}\\
 Shahrood, Iran\\
-math.mohammad.arab@gmail.com}
+math.mohammad.arab@shahroodut.ac.ir}
 \and
 \IEEEauthorblockN{Hoda Mashayekhi}
-\IEEEauthorblockA{\textit{Faculty of Computer Engineering}\\
+\IEEEauthorblockA{\textit{Department of Computer Engineering}\\
 \textit{Shahrood University of Technology}\\
 Shahrood, Iran\\
-\todo{email}}
+hmashayekhi@shahroodut.ac.ir}
 \and
 \IEEEauthorblockN{Maryam Khodabakhsh}
-\IEEEauthorblockA{\textit{Faculty of Computer Engineering}\\
+\IEEEauthorblockA{\textit{Department of Computer Engineering}\\
 \textit{Shahrood University of Technology}\\
 Shahrood, Iran\\
-\todo{email}}
+m\_khodabakhsh@shahroodut.ac.ir}
 }
 
 \maketitle
@@ -60,7 +60,7 @@ Shahrood, Iran\\
 % Abstract and keywords
 % =====================================================================
 \begin{abstract}
-\todo{write abstract}
+Marine accident reports are a key source for safety learning, but their manual classification is slow, and the most safety-critical incident types are also the rarest. Recent work reported that adding a bidirectional LSTM (BiLSTM) on top of BERT improves the classification of maritime accident texts, but the compared models were trained with different hyperparameters, evaluated in a single run, and assessed mainly by accuracy. Using 5,762 publicly available incident reports of the UK Marine Accident Investigation Branch (MAIB) in nine classes, we compare a TF-IDF + SVM baseline with BERT, BERT + BiLSTM and BERT + BiLSTM + attention under identical training settings and two random seeds. We further evaluate four loss functions, class-balanced oversampling, and data augmentation with a large language model (LLM) filtered by a label-consistency check. All BERT-based models outperform the baseline (macro-F1 0.885 vs.\ up to 0.915). The BiLSTM and attention layers bring no gain beyond seed-to-seed variation, whereas inverse-frequency weighted cross-entropy raises macro-F1 from 0.905 to 0.914 and critical-class recall from 0.845 to 0.868. Oversampling and LLM augmentation do not add to this gain for BERT, although augmentation improves the SVM baseline. Error and attention analyses indicate that the remaining errors stem mainly from the single-label annotation of multi-event reports rather than from model capacity.
 \end{abstract}
 
 \begin{IEEEkeywords}
