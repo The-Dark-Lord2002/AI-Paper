@@ -60,7 +60,7 @@ m\_khodabakhsh@shahroodut.ac.ir}
 % Abstract and keywords
 % =====================================================================
 \begin{abstract}
-Marine accident reports are a key source for safety learning, but their manual classification is slow, and the most safety-critical incident types are also the rarest. Recent work reported that adding a bidirectional LSTM (BiLSTM) on top of BERT improves the classification of maritime accident texts, but the compared models were trained with different hyperparameters, reported without repeated runs, and assessed mainly by accuracy. Using 5,762 publicly available incident reports of the UK Marine Accident Investigation Branch (MAIB) in nine classes, we compare a TF-IDF + SVM baseline with BERT, BERT + BiLSTM and BERT + BiLSTM + attention under identical training settings and two random seeds. We further evaluate four loss functions, class-balanced oversampling, and data augmentation with a large language model (LLM) filtered by a label-consistency check. All BERT-based models outperform the baseline (macro-F1 0.885 vs.\ up to 0.915). The BiLSTM and attention layers bring no gain beyond seed-to-seed variation, whereas inverse-frequency weighted cross-entropy raises macro-F1 from 0.905 to 0.914 and critical-class recall from 0.845 to 0.868. Oversampling and LLM augmentation do not add to this gain for BERT, although augmentation improves the SVM baseline. Error and attention analyses suggest that many of the remaining errors stem from the single-label annotation of multi-event reports rather than from model capacity.
+Marine accident reports are a key source for safety learning, but their manual classification is slow, and the most safety-critical incident types are also the rarest. Recent work reported that adding a bidirectional LSTM (BiLSTM) on top of BERT improves the classification of maritime accident texts, but the compared models were trained with different hyperparameters, reported without repeated runs, and assessed mainly by accuracy. Using 5,762 publicly available incident reports of the UK Marine Accident Investigation Branch (MAIB) in nine classes, we compare a TF-IDF + SVM baseline with BERT, BERT + BiLSTM and BERT + BiLSTM + attention under identical training settings and two random seeds. We further evaluate four loss functions, class-balanced oversampling, and data augmentation with a large language model (LLM) filtered by a label-consistency check. All BERT-based models outperform the baseline (macro-F1 0.885 vs.\ up to 0.915). The BiLSTM and attention layers bring no gain beyond seed-to-seed variation, even when the BiLSTM is enlarged, whereas inverse-frequency weighted cross-entropy (wce) raises macro-F1 from 0.905 to 0.914 and critical-class recall from 0.845 to 0.868. The best configuration combines wce with LLM augmentation (macro-F1 0.915), although its lead over wce alone lies within seed-to-seed variation; augmentation also improves the SVM baseline, and oversampling brings no gain beyond seed variation. Error and attention analyses suggest that many of the remaining errors stem from the single-label annotation of multi-event reports rather than from model capacity.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -190,7 +190,7 @@ Oversampling repeats existing reports and adds no new information. We therefore 
 % ---------------------------------------------------------------------
 \subsection{Framework}
 
-The evaluation proceeds in four stages. (i) The data are cleaned and split once. (ii) The SVM baseline and the three BERT-based models are trained with ce to answer RQ1. (iii) The imbalance treatments are applied to the attention model to answer RQ2. (iv) The best model is analyzed through its confusion matrix, per-class recall and attention weights to answer RQ3.
+The evaluation proceeds in four stages. (i) The data are cleaned and split once. (ii) The SVM baseline and the three BERT-based models are trained with ce to answer RQ1. (iii) The imbalance treatments are applied to the attention model to answer RQ2. (iv) The best configuration, i.e., the one with the highest mean macro-F1, is analyzed through its confusion matrix and per-class results, and the attention weights of the attention model are inspected, to answer RQ3.
 
 % =====================================================================
 % 4. Case Study
@@ -269,13 +269,13 @@ Our main metric is macro-F1, the unweighted mean of the per-class F1 scores, whi
 % ---------------------------------------------------------------------
 \subsection{Classification Results}
 
-Table~\ref{tab:results} reports the test results. All BERT-based models outperform the TF-IDF + SVM baseline in macro-F1 (0.898--0.915 vs.\ 0.885).
+Table~\ref{tab:results} reports the test results. All BERT-based models outperform the TF-IDF + SVM baseline in macro-F1 (0.898--0.915 vs.\ 0.885). The highest macro-F1 is reached by Att + wce + LLM augmentation (0.915 $\pm$ 0.002), which we refer to as the best configuration; its lead over Att + wce (0.914 $\pm$ 0.006) is within seed variation.
 
 % --- Table III: main results -----------------------------------------
 % Blocks: SVM baseline | architectures (RQ1) | imbalance treatments (RQ2)
 % Values: mean{\tiny +- std} over two seeds; best per column in bold.
 \begin{table}[t]
-\caption{Test results (865 reports), mean $\pm$ standard deviation over two seeds. Att: BERT + BiLSTM + attention.}
+\caption{Test results (865 reports), mean $\pm$ standard deviation over two seeds. Att: BERT + BiLSTM + attention. The best value in each column is in bold.}
 \label{tab:results}
 \centering
 \footnotesize
@@ -302,32 +302,34 @@ Att + wce + LLM augm. & \textbf{0.915}{\tiny$\pm$.002} & 0.868{\tiny$\pm$.016} &
 \end{tabular}
 \end{table}
 
-\textbf{RQ1.} Adding a BiLSTM to BERT changes macro-F1 by +0.004, and adding attention changes it by another +0.004. Both differences are within seed variation. Critical recall does not increase either: it is highest for plain BERT (0.873).
+\textbf{RQ1.} Adding a BiLSTM to BERT changes macro-F1 by +0.004, and adding attention changes it by another +0.004. Both differences are within seed variation. Critical recall does not increase either: it is highest for plain BERT (0.873). Enlarging the BiLSTM of Att + wce to 384 units per direction, to two layers, or to both (up to 7.1M instead of 0.9M BiLSTM parameters) did not help: macro-F1 was 0.909, 0.910 and 0.913, against 0.914 with the default size.
 
-\textbf{RQ2.} Relative to ce, wce raises macro-F1 by 0.009 and critical recall by 0.022, both larger than seed variation, without lowering accuracy. The cb loss gives a smaller gain (+0.005), and the focal loss gives none. Oversampling the BERT training data changes macro-F1 by +0.003, within seed variation, and has practically no effect on the SVM. Of the 1,493 rewrites generated by the LLM, 1,068 (71.5\%) passed the label check, which enlarged the training set from 4,033 to 5,101 reports. Augmentation raised the macro-F1 of the SVM by 0.005 and its critical recall by 0.022. For BERT, however, it changed macro-F1 by +0.003 with ce and by +0.001 with wce, both within seed variation.
+\textbf{RQ2.} Relative to ce, wce raises macro-F1 by 0.009 and critical recall by 0.022, both larger than seed variation, without lowering accuracy. The cb loss gives a smaller gain (+0.005), and the focal loss gives none. Oversampling the BERT training data changes macro-F1 by +0.003, within seed variation, and has practically no effect on the SVM. Of the 1,493 rewrites generated by the LLM, 1,068 (71.5\%) passed the label check, which enlarged the training set from 4,033 to 5,101 reports. Augmentation raised the macro-F1 of the SVM by 0.005 and its critical recall by 0.022. For BERT, it changed macro-F1 by +0.003 with ce and by +0.001 with wce, both within seed variation; combined with wce, it nevertheless gave the highest macro-F1 of all configurations and a smaller spread between seeds (0.002 vs.\ 0.006).
 
-Table~\ref{tab:perclass} shows the number of correctly classified test reports per class. The gains of wce come mainly from Capsizing (+1 report), Collision (+1.5) and Loss of Control (+3), at a cost of 1.5 reports in the largest class.
+Table~\ref{tab:perclass} shows the number of correctly classified test reports per class. The gains of wce come mainly from Capsizing (+1 report), Collision (+1.5) and Loss of Control (+3), at a cost of 1.5 reports in the largest class. The best configuration classifies the same total number of reports correctly as Att + wce (809 of 865 on average); it gains 1.5 reports in Collision and loses 2 in Damage.
 
 % --- Table IV: correct test reports per class ------------------------
 \begin{table}[t]
-\caption{Correctly classified test reports per class (mean over seeds), rarest class first.}
+\caption{Correctly classified test reports per class (mean over seeds), rarest class first. +wce: Att + wce; +LLM: Att + wce + LLM augmentation, the best configuration.}
 \label{tab:perclass}
 \centering
 \footnotesize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{lrrrrr}
+\setlength{\tabcolsep}{2.6pt}
+\begin{tabular}{lrrrrrr}
 \toprule
-Class ($n$) & SVM & BERT & +BiLSTM & Att & Att+wce \\
+Class ($n$) & SVM & BERT & +BiLSTM & Att & +wce & +LLM \\
 \midrule
-Capsizing (15) & 10 & 12 & 11 & 10.5 & 11.5 \\
-Flooding (28) & 24 & 23.5 & 23.5 & 24 & 24 \\
-Fire (48) & 46 & 47 & 47 & 47 & 47 \\
-Collision (49) & 43 & 44.5 & 45 & 45.5 & 47 \\
-Contact (61) & 49 & 48.5 & 50 & 52 & 51.5 \\
-Grounding (84) & 78 & 78 & 79 & 79.5 & 79.5 \\
-Loss of Control (124) & 110 & 109.5 & 110.5 & 110 & 113 \\
-Damage (206) & 186 & 193 & 192 & 191 & 191 \\
-Accident (250) & 245 & 246 & 244.5 & 246 & 244.5 \\
+Capsizing (15) & 10 & 12 & 11 & 10.5 & 11.5 & 11.5 \\
+Flooding (28) & 24 & 23.5 & 23.5 & 24 & 24 & 24 \\
+Fire (48) & 46 & 47 & 47 & 47 & 47 & 47 \\
+Collision (49) & 43 & 44.5 & 45 & 45.5 & 47 & 48.5 \\
+Contact (61) & 49 & 48.5 & 50 & 52 & 51.5 & 51.5 \\
+Grounding (84) & 78 & 78 & 79 & 79.5 & 79.5 & 79 \\
+Loss of Control (124) & 110 & 109.5 & 110.5 & 110 & 113 & 113.5 \\
+Damage (206) & 186 & 193 & 192 & 191 & 191 & 189 \\
+Accident (250) & 245 & 246 & 244.5 & 246 & 244.5 & 245 \\
+\midrule
+Total (865) & 791 & 802 & 802.5 & 805.5 & 809 & 809 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -347,24 +349,24 @@ Under identical settings, neither the BiLSTM nor the attention layer improved on
 % ---------------------------------------------------------------------
 \subsection{Imbalance Treatments}
 
-A one-line change of the loss (wce) helped more than additional layers. Oversampling did not match it, although in expectation it gives each class the same total weight as wce; its random sampling adds noise, and in each epoch many reports of the large classes are not seen at all. LLM augmentation helped the SVM, whose bag-of-words features benefit from new vocabulary, but not BERT, which already generalizes over paraphrases through pre-training. Together with the small effect of oversampling, this suggests that the remaining errors on rare classes are semantic rather than due to a lack of examples.
+A one-line change of the loss (wce) helped more than additional layers. Oversampling did not match it, although in expectation it gives each class the same total weight as wce; its random sampling adds noise, and in each epoch many reports of the large classes are not seen at all. LLM augmentation helped the SVM, whose bag-of-words features benefit from new vocabulary, more than BERT, which already generalizes over paraphrases through pre-training: on top of wce it added only 0.001 macro-F1, although it reduced the spread between seeds and gave the best configuration overall. Together with the small effect of oversampling, this suggests that the remaining errors on rare classes are semantic rather than due to a lack of examples.
 
 % ---------------------------------------------------------------------
 \subsection{Attention and Error Analysis}
 
-Fig.~\ref{fig:cm} shows the confusion matrix of the best single-component model (Att + wce). The most frequent confusions are between Damage and Loss of Control (13 and 9 reports over both seeds), Contact and Collision (8), Damage and Contact (7), and Grounding and Loss of Control (6). Most of these are pairs of cause and consequence: a report of a propulsion failure followed by a grounding can be labelled with either event. Contact and Collision are instead close by definition, since both describe a vessel striking something, a fixed structure in one case and another vessel in the other. Multi-event reports, such as a vessel striking a lock wall after which a crew member falls overboard, and rare technical terms such as \emph{girting} and \emph{allided} account for further errors.
+Fig.~\ref{fig:cm} shows the confusion matrix of the best configuration (Att + wce + LLM augmentation). The most frequent confusions are between Damage and Loss of Control (17 and 7 reports over both seeds), Damage and Contact (8), Contact and Collision (8), and Grounding and Loss of Control (6 and 5). Without augmentation (Att + wce) the pattern is the same, with 13 and 9 reports between Damage and Loss of Control. Most of these are pairs of cause and consequence: a report of a propulsion failure followed by a grounding can be labelled with either event. Contact and Collision are instead close by definition, since both describe a vessel striking something, a fixed structure in one case and another vessel in the other. Multi-event reports, such as a vessel striking a lock wall after which a crew member falls overboard, and rare technical terms such as \emph{girting} and \emph{allided} account for further errors.
 
 % --- Fig. 2: confusion matrix (PDF generated by the analysis code) ---
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{figures/confusion_matrix.pdf}
-\caption{Row-normalized confusion matrix of Att + wce on the test set (two seeds summed). * marks safety-critical classes.}
+\caption{Row-normalized confusion matrix of the best configuration, Att + wce + LLM augmentation, on the test set (two seeds summed). * marks safety-critical classes.}
 \label{fig:cm}
 \end{figure}
 
 % --- Table V: top attention words per class --------------------------
 \begin{table}[t]
-\caption{Words with the highest mean attention weight per class (Att + wce, test set; words shared by most classes, i.e., \emph{vessel}, \emph{crew}, \emph{crewmember}, \emph{member}, \emph{resulting}, \emph{damage}, \emph{suffered} and \emph{experienced}, omitted).}
+\caption{Words with the highest total attention weight per class, summed over correctly classified test reports (Att + wce, seed 1; words shared by most classes, i.e., \emph{vessel}, \emph{crew}, \emph{crewmember}, \emph{member}, \emph{resulting}, \emph{damage}, \emph{suffered} and \emph{experienced}, omitted).}
 \label{tab:attention}
 \centering
 \footnotesize
@@ -385,7 +387,7 @@ Loss of Control & failure, engine, fouled, towed, propulsion \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:attention} lists the words with the highest mean attention weight. They are mostly the expected class indicators, e.g., \emph{capsized} for Capsizing, \emph{ingress} and \emph{water} for Flooding, and \emph{grounded} and \emph{aground} for Grounding. For Damage / Loss of Equipment, however, the top words are \emph{SOLAS}, \emph{ladder}, \emph{pilot}, \emph{conform} and \emph{regulations}. They point to a recurring subgroup of reports on pilot ladders that do not conform to SOLAS requirements, hidden within a broad class. This illustrates the value of attention for exploring reports, although attention weights show where the model looked, not why it decided \cite{jain2019attention,wiegreffe2019attention}.
+Table~\ref{tab:attention} lists the words with the highest total attention weight for Att + wce. They are mostly the expected class indicators, e.g., \emph{capsized} for Capsizing, \emph{ingress} and \emph{water} for Flooding, and \emph{grounded} and \emph{aground} for Grounding. For Damage / Loss of Equipment, however, the top words are \emph{SOLAS}, \emph{ladder}, \emph{pilot}, \emph{conform} and \emph{regulations}. They point to a recurring subgroup of reports on pilot ladders that do not conform to SOLAS requirements, hidden within a broad class. This illustrates the value of attention for exploring reports, although attention weights show where the model looked, not why it decided \cite{jain2019attention,wiegreffe2019attention}.
 
 Three observations suggest that the ceiling of about 0.91 macro-F1 comes from the single-label annotation rather than from model capacity: most dominant confusions are cause--consequence pairs or near-synonymous classes, related classes share top attention words (\emph{contact} appears among the top words of Collision), and a linear TF-IDF baseline comes within 0.03 macro-F1 of the best model.
 
@@ -399,7 +401,7 @@ The results are based on two seeds and a single data split, and no significance 
 % =====================================================================
 \section{Conclusions}\label{sec:conc}
 
-We compared BERT-based architectures and imbalance treatments for classifying 5,762 public MAIB incident reports under a controlled protocol. All BERT models outperformed a TF-IDF + SVM baseline, but the BiLSTM and attention layers proposed in prior work did not improve on plain BERT beyond seed variation. Weighted cross-entropy was the most effective treatment, raising macro-F1 to 0.914 and critical-class recall to 0.868, while oversampling and LLM augmentation did not add to it. The residual errors are concentrated between cause and consequence classes, which suggests that better annotation schemes are a more promising direction than more complex architectures. Code and results are publicly available.\todo{add GitHub link once the repository is public}
+We compared BERT-based architectures and imbalance treatments for classifying 5,762 public MAIB incident reports under a controlled protocol. All BERT models outperformed a TF-IDF + SVM baseline, but the BiLSTM and attention layers proposed in prior work did not improve on plain BERT beyond seed variation, nor did a larger BiLSTM. Weighted cross-entropy was the most effective single treatment, raising macro-F1 to 0.914 and critical-class recall to 0.868. Adding LLM augmentation gave the best configuration (macro-F1 0.915), but its contribution lies within seed variation, and oversampling did not add to wce. The residual errors are concentrated between cause and consequence classes, which suggests that better annotation schemes are a more promising direction than more complex architectures. Code and results are publicly available.\todo{add GitHub link once the repository is public}
 
 % =====================================================================
 % References (entries in refs.bib)
