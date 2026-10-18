@@ -60,7 +60,7 @@ m\_khodabakhsh@shahroodut.ac.ir}
 % Abstract and keywords
 % =====================================================================
 \begin{abstract}
-Marine accident reports are a key source for safety learning, but their manual classification is slow, and the most safety-critical incident types are also the rarest. Recent work reported that adding a bidirectional LSTM (BiLSTM) on top of BERT improves the classification of maritime accident texts, but the compared models were trained with different hyperparameters, evaluated in a single run, and assessed mainly by accuracy. Using 5,762 publicly available incident reports of the UK Marine Accident Investigation Branch (MAIB) in nine classes, we compare a TF-IDF + SVM baseline with BERT, BERT + BiLSTM and BERT + BiLSTM + attention under identical training settings and two random seeds. We further evaluate four loss functions, class-balanced oversampling, and data augmentation with a large language model (LLM) filtered by a label-consistency check. All BERT-based models outperform the baseline (macro-F1 0.885 vs.\ up to 0.915). The BiLSTM and attention layers bring no gain beyond seed-to-seed variation, whereas inverse-frequency weighted cross-entropy raises macro-F1 from 0.905 to 0.914 and critical-class recall from 0.845 to 0.868. Oversampling and LLM augmentation do not add to this gain for BERT, although augmentation improves the SVM baseline. Error and attention analyses indicate that the remaining errors stem mainly from the single-label annotation of multi-event reports rather than from model capacity.
+Marine accident reports are a key source for safety learning, but their manual classification is slow, and the most safety-critical incident types are also the rarest. Recent work reported that adding a bidirectional LSTM (BiLSTM) on top of BERT improves the classification of maritime accident texts, but the compared models were trained with different hyperparameters, reported without repeated runs, and assessed mainly by accuracy. Using 5,762 publicly available incident reports of the UK Marine Accident Investigation Branch (MAIB) in nine classes, we compare a TF-IDF + SVM baseline with BERT, BERT + BiLSTM and BERT + BiLSTM + attention under identical training settings and two random seeds. We further evaluate four loss functions, class-balanced oversampling, and data augmentation with a large language model (LLM) filtered by a label-consistency check. All BERT-based models outperform the baseline (macro-F1 0.885 vs.\ up to 0.915). The BiLSTM and attention layers bring no gain beyond seed-to-seed variation, whereas inverse-frequency weighted cross-entropy raises macro-F1 from 0.905 to 0.914 and critical-class recall from 0.845 to 0.868. Oversampling and LLM augmentation do not add to this gain for BERT, although augmentation improves the SVM baseline. Error and attention analyses suggest that many of the remaining errors stem from the single-label annotation of multi-event reports rather than from model capacity.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -77,7 +77,7 @@ Marine accident investigation bodies such as the UK Marine Accident Investigatio
 
 The task is difficult for three reasons. First, the classes are highly imbalanced, and the most safety-critical incident types, such as fire, capsizing and flooding, are among the rarest. A model optimized for overall accuracy can largely ignore them. Second, each report carries a single label although many incidents involve a chain of events, for example an engine failure followed by a grounding. Third, the reports contain domain-specific vocabulary that general-purpose language models rarely see during pre-training.
 
-Recent studies applied BERT-based models to maritime accident texts \cite{zhao2025causation,black2026domain,yu2026semantic,wang2026fire}. In particular, Zhao et al.\ \cite{zhao2025causation} combined BERT with a BiLSTM and reported that this architecture outperforms plain BERT. However, the compared models in that study were trained with different dropout, regularization, gradient-clipping and activation settings, each model was trained once, and the main metric was accuracy. It therefore remains unclear whether the reported gain stems from the architecture or from the settings, and how the models perform on rare classes.
+Recent studies applied BERT-based models to maritime accident texts \cite{zhao2025causation,black2026domain,yu2026semantic,wang2026fire}. In particular, Zhao et al.\ \cite{zhao2025causation} combined BERT with a BiLSTM and reported that this architecture outperforms plain BERT. However, the compared models in that study were trained with different dropout, regularization, gradient-clipping and activation settings, no repeated runs were reported, and the main metric was accuracy. It therefore remains unclear whether the reported gain stems from the architecture or from the settings, and how the models perform on rare classes.
 
 In this paper, we revisit this question on a public dataset under a controlled protocol. We ask three research questions:
 \begin{itemize}
@@ -87,9 +87,9 @@ In this paper, we revisit this question on a public dataset under a controlled p
 \end{itemize}
 
 % Contributions
-Our contributions are as follows: (1) a controlled evaluation of BERT, BERT + BiLSTM and BERT + BiLSTM + attention with a shared encoder, an identical training recipe, multiple seeds, a classical baseline, and macro-F1 and per-class recall as metrics; (2) a systematic comparison of three loss functions, oversampling and LLM paraphrasing with a label-consistency filter, with a focus on safety-critical classes; (3) an error and attention analysis showing that the remaining errors are concentrated between cause and consequence classes; and (4) a fully reproducible pipeline on public data.
+Our contributions are as follows: (1) a controlled evaluation of BERT, BERT + BiLSTM and BERT + BiLSTM + attention with a shared encoder, an identical training recipe, multiple seeds, a classical baseline, and macro-F1 and per-class recall as metrics; (2) a systematic comparison of three loss functions, oversampling and LLM paraphrasing with a label-consistency filter, with a focus on safety-critical classes; (3) an error and attention analysis showing that the remaining errors are concentrated between related classes, mostly cause and consequence pairs; and (4) a fully reproducible pipeline on public data.
 
-The rest of the paper follows the structure of \cite{zhao2025causation}: Section~\ref{sec:lit} reviews related work, Section~\ref{sec:method} introduces the models and imbalance treatments, Section~\ref{sec:case} presents the case study, Section~\ref{sec:disc} discusses the findings, and Section~\ref{sec:conc} concludes.
+The rest of the paper is organized as follows: Section~\ref{sec:lit} reviews related work, Section~\ref{sec:method} introduces the models and imbalance treatments, Section~\ref{sec:case} presents the case study, Section~\ref{sec:disc} discusses the findings, and Section~\ref{sec:conc} concludes.
 
 % =====================================================================
 % 2. Literature Review
@@ -237,7 +237,7 @@ Total & 5,762 & 4,033 & 864 & 865 \\
 The classical baseline is a linear SVM \cite{joachims1998text} on TF-IDF features \cite{salton1988term} of words and word bigrams, ignoring terms that occur in only one report.
 
 \subsubsection{Training settings}
-All BERT-based models use the same recipe (Table~\ref{tab:settings}), so that differences in results can only come from the head, the loss or the data. For each run, the epoch with the highest validation macro-F1 is selected, and the test set is used only once, at the end of the run. Each configuration is trained with two seeds, and we report the mean and standard deviation. One run took about 75 minutes on a laptop GPU (NVIDIA GTX 1650 Ti, 4 GB), and about 91 minutes with the augmented training set.
+All BERT-based models use the same recipe (Table~\ref{tab:settings}), so that differences in results can only come from the head, the loss or the data. For each run, the epoch with the highest validation macro-F1 is selected, and the test set is used only once, at the end of the run. Each configuration is trained with two seeds, and we report the mean and sample standard deviation. The recipe deliberately differs from the per-model settings of \cite{zhao2025causation}, whose learning rate of $10^{-6}$ for all layers did not converge within our epoch budget; using one recipe for all heads is what allows their effects to be compared. One run took about 75 minutes on a laptop GPU (NVIDIA GTX 1650 Ti, 4 GB), and about 91 minutes with the augmented training set.
 
 % --- Table II: shared training recipe --------------------------------
 \begin{table}[t]
@@ -304,7 +304,7 @@ Att + wce + LLM augm. & \textbf{0.915}{\tiny$\pm$.002} & 0.868{\tiny$\pm$.016} &
 
 \textbf{RQ1.} Adding a BiLSTM to BERT changes macro-F1 by +0.004, and adding attention changes it by another +0.004. Both differences are within seed variation. Critical recall does not increase either: it is highest for plain BERT (0.873).
 
-\textbf{RQ2.} Relative to ce, wce raises macro-F1 by 0.009 and critical recall by 0.023, both larger than seed variation, without lowering accuracy. The cb loss gives a smaller gain (+0.005), and the focal loss gives none. Oversampling the BERT training data changes macro-F1 by +0.003, within seed variation, and has practically no effect on the SVM. Of the 1,493 rewrites generated by the LLM, 1,068 (71.5\%) passed the label check, which enlarged the training set from 4,033 to 5,101 reports. Augmentation raised the macro-F1 of the SVM by 0.005 and its critical recall by 0.023. For BERT, however, it changed macro-F1 by +0.003 with ce and by +0.001 with wce, both within seed variation.
+\textbf{RQ2.} Relative to ce, wce raises macro-F1 by 0.009 and critical recall by 0.022, both larger than seed variation, without lowering accuracy. The cb loss gives a smaller gain (+0.005), and the focal loss gives none. Oversampling the BERT training data changes macro-F1 by +0.003, within seed variation, and has practically no effect on the SVM. Of the 1,493 rewrites generated by the LLM, 1,068 (71.5\%) passed the label check, which enlarged the training set from 4,033 to 5,101 reports. Augmentation raised the macro-F1 of the SVM by 0.005 and its critical recall by 0.022. For BERT, however, it changed macro-F1 by +0.003 with ce and by +0.001 with wce, both within seed variation.
 
 Table~\ref{tab:perclass} shows the number of correctly classified test reports per class. The gains of wce come mainly from Capsizing (+1 report), Collision (+1.5) and Loss of Control (+3), at a cost of 1.5 reports in the largest class.
 
@@ -352,7 +352,7 @@ A one-line change of the loss (wce) helped more than additional layers. Oversamp
 % ---------------------------------------------------------------------
 \subsection{Attention and Error Analysis}
 
-Fig.~\ref{fig:cm} shows the confusion matrix of the best single-component model (Att + wce). The most frequent confusions are between Damage and Loss of Control (13 and 9 reports over both seeds), Contact and Collision (8), and Grounding and Loss of Control (6). These are pairs of cause and consequence: a report of a propulsion failure followed by a grounding can be labelled with either event. Multi-event reports, such as a vessel striking a lock wall after which a crew member falls overboard, and rare technical terms such as \emph{girting} and \emph{allided} account for further errors.
+Fig.~\ref{fig:cm} shows the confusion matrix of the best single-component model (Att + wce). The most frequent confusions are between Damage and Loss of Control (13 and 9 reports over both seeds), Contact and Collision (8), Damage and Contact (7), and Grounding and Loss of Control (6). Most of these are pairs of cause and consequence: a report of a propulsion failure followed by a grounding can be labelled with either event. Contact and Collision are instead close by definition, since both describe a vessel striking something, a fixed structure in one case and another vessel in the other. Multi-event reports, such as a vessel striking a lock wall after which a crew member falls overboard, and rare technical terms such as \emph{girting} and \emph{allided} account for further errors.
 
 % --- Fig. 2: confusion matrix (PDF generated by the analysis code) ---
 \begin{figure}[t]
@@ -364,7 +364,7 @@ Fig.~\ref{fig:cm} shows the confusion matrix of the best single-component model 
 
 % --- Table V: top attention words per class --------------------------
 \begin{table}[t]
-\caption{Words with the highest mean attention weight per class (Att + wce, test set; generic words such as \emph{vessel} omitted).}
+\caption{Words with the highest mean attention weight per class (Att + wce, test set; words shared by most classes, i.e., \emph{vessel}, \emph{crew}, \emph{crewmember}, \emph{member}, \emph{resulting}, \emph{damage}, \emph{suffered} and \emph{experienced}, omitted).}
 \label{tab:attention}
 \centering
 \footnotesize
@@ -387,7 +387,7 @@ Loss of Control & failure, engine, fouled, towed, propulsion \\
 
 Table~\ref{tab:attention} lists the words with the highest mean attention weight. They are mostly the expected class indicators, e.g., \emph{capsized} for Capsizing, \emph{ingress} and \emph{water} for Flooding, and \emph{grounded} and \emph{aground} for Grounding. For Damage / Loss of Equipment, however, the top words are \emph{SOLAS}, \emph{ladder}, \emph{pilot}, \emph{conform} and \emph{regulations}. They point to a recurring subgroup of reports on pilot ladders that do not conform to SOLAS requirements, hidden within a broad class. This illustrates the value of attention for exploring reports, although attention weights show where the model looked, not why it decided \cite{jain2019attention,wiegreffe2019attention}.
 
-Three observations suggest that the ceiling of about 0.91 macro-F1 comes from the single-label annotation rather than from model capacity: the dominant confusions are cause--consequence pairs, related classes share top attention words (\emph{contact} appears among the top words of Collision), and a linear TF-IDF baseline comes within 0.03 macro-F1 of the best model.
+Three observations suggest that the ceiling of about 0.91 macro-F1 comes from the single-label annotation rather than from model capacity: most dominant confusions are cause--consequence pairs or near-synonymous classes, related classes share top attention words (\emph{contact} appears among the top words of Collision), and a linear TF-IDF baseline comes within 0.03 macro-F1 of the best model.
 
 % ---------------------------------------------------------------------
 \subsection{Limitations and Improvements}
@@ -399,7 +399,7 @@ The results are based on two seeds and a single data split, and no significance 
 % =====================================================================
 \section{Conclusions}\label{sec:conc}
 
-We compared BERT-based architectures and imbalance treatments for classifying 5,762 public MAIB incident reports under a controlled protocol. All BERT models outperformed a TF-IDF + SVM baseline, but the BiLSTM and attention layers proposed in prior work did not improve on plain BERT beyond seed variation. Weighted cross-entropy was the most effective treatment, raising macro-F1 to 0.914 and critical-class recall to 0.868, while oversampling and LLM augmentation did not add to it. The residual errors are concentrated between cause and consequence classes, which indicates that better annotation schemes are a more promising direction than more complex architectures. Code and results are publicly available.\todo{add GitHub link once the repository is public}
+We compared BERT-based architectures and imbalance treatments for classifying 5,762 public MAIB incident reports under a controlled protocol. All BERT models outperformed a TF-IDF + SVM baseline, but the BiLSTM and attention layers proposed in prior work did not improve on plain BERT beyond seed variation. Weighted cross-entropy was the most effective treatment, raising macro-F1 to 0.914 and critical-class recall to 0.868, while oversampling and LLM augmentation did not add to it. The residual errors are concentrated between cause and consequence classes, which suggests that better annotation schemes are a more promising direction than more complex architectures. Code and results are publicly available.\todo{add GitHub link once the repository is public}
 
 % =====================================================================
 % References (entries in refs.bib)
