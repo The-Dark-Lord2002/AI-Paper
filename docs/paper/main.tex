@@ -277,7 +277,7 @@ Table~\ref{tab:results} reports the test results. All BERT-based models outperfo
 % Blocks: SVM baseline | architectures (RQ1) | imbalance treatments (RQ2)
 % Values: mean{\tiny +- std} over two seeds; best per column in bold.
 \begin{table}[t]
-\caption{Test results (865 reports), mean $\pm$ standard deviation over two seeds. Att: BERT + BiLSTM + attention. The best value in each column is in bold.}
+\caption{Test results (865 reports), mean $\pm$ standard deviation over two seeds (the SVM is deterministic and was trained once). Att: BERT + BiLSTM + attention; LLM augm.: training set enlarged with LLM paraphrases. The best value in each column is in bold.}
 \label{tab:results}
 \centering
 \footnotesize
@@ -287,8 +287,8 @@ Table~\ref{tab:results} reports the test results. All BERT-based models outperfo
 Configuration & Macro-F1 & Crit.\ recall & Accuracy \\
 \midrule
 TF-IDF + SVM & 0.885 & 0.827 & 0.914 \\
-\quad + oversampling & 0.885 & 0.834 & 0.917 \\
-\quad + LLM augmentation & 0.889 & 0.850 & 0.916 \\
+TF-IDF + SVM + oversampling & 0.885 & 0.834 & 0.917 \\
+TF-IDF + SVM + LLM augm. & 0.889 & 0.850 & 0.916 \\
 \midrule
 BERT (ce) & 0.898{\tiny$\pm$.007} & \textbf{0.873}{\tiny$\pm$.008} & 0.927{\tiny$\pm$.005} \\
 BERT + BiLSTM \cite{zhao2025causation} (ce) & 0.901{\tiny$\pm$.004} & 0.851{\tiny$\pm$.040} & 0.928{\tiny$\pm$.001} \\
