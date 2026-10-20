@@ -36,7 +36,8 @@ WARMUP_FRACTION = 0.1          # first 10% of updates: learning rate grows from 
 FOCAL_GAMMA = 2.0              # focal loss: how strongly easy examples are down-weighted (Lin et al. 2017)
 CB_BETA = 0.999                # class-balanced loss: "effective number" parameter (Cui et al. 2019)
 
-SEEDS = [1, 2, 3]              # every configuration is trained 3 times; we report mean +- std
+SEEDS = [1, 2]                 # every configuration is trained with these seeds; we report mean +- std
+                               # (the reported results use 1 and 2; add 3 for a third run)
 
 # ---------------------------------------------------------------- the experiment table
 # (model, loss)                       proposal step

@@ -31,8 +31,13 @@ PAIRS = [
     ("bert_bilstm_att__ce", "bert_bilstm_att__ce__SEED__oversample"),
     ("bert_bilstm_att__ce", "bert_bilstm_att__ce__SEED__augment"),
     ("bert_bilstm_att__wce", "bert_bilstm_att__wce__SEED__augment"),
+    ("bert_bilstm_att__ce", "bert_bilstm_att__wce__SEED__augment"),      # the best configuration
+    ("bert_bilstm_att__wce", "bert_bilstm_att__wce__SEED__h384_l1"),     # bigger BiLSTM
+    ("bert_bilstm_att__wce", "bert_bilstm_att__wce__SEED__h128_l2"),
+    ("bert_bilstm_att__wce", "bert_bilstm_att__wce__SEED__h384_l2"),
 ]
-SEEDS = [1, 2]
+SVM_PAIRS = [("tfidf_svm", "tfidf_svm_oversample"), ("tfidf_svm", "tfidf_svm_augment")]   # one run each
+SEEDS = config.SEEDS
 N_BOOT = 2000
 
 
@@ -64,33 +69,40 @@ def mcnemar_exact(correct_a, correct_b):
     return b, c, min(p, 1.0)
 
 
-def bootstrap_f1_diff(true, pred_a, pred_b, rng):
+def macro_f1(true, pred, n_classes):
+    """Macro-F1 over ALL classes, as in common.compute_metrics (a class missing from a resample counts as 0)."""
+    return f1_score(true, pred, labels=list(range(n_classes)), average="macro", zero_division=0)
+
+
+def bootstrap_f1_diff(true, pred_a, pred_b, n_classes, rng):
     n = len(true)
     diffs = np.empty(N_BOOT)
     for i in range(N_BOOT):
         idx = rng.integers(0, n, n)
-        diffs[i] = (f1_score(true[idx], pred_b[idx], average="macro", zero_division=0)
-                    - f1_score(true[idx], pred_a[idx], average="macro", zero_division=0))
+        diffs[i] = macro_f1(true[idx], pred_b[idx], n_classes) - macro_f1(true[idx], pred_a[idx], n_classes)
     return np.percentile(diffs, [2.5, 97.5])
 
 
 def main():
-    _, _, test, _ = load_split()
+    _, _, test, labels = load_split()
     y_names = test["label"].tolist()
     rng = np.random.default_rng(0)
     rows = []
-    for a, b in PAIRS:
-        for seed in SEEDS:
-            true, pa = load_predictions(a, seed, y_names)
-            true_b, pb = load_predictions(b, seed, y_names)
-            assert (true == true_b).all(), "test order differs between result files"
-            n01, n10, p = mcnemar_exact(pa == true, pb == true)
-            d_f1 = (f1_score(true, pb, average="macro") - f1_score(true, pa, average="macro"))
-            lo, hi = bootstrap_f1_diff(true, pa, pb, rng)
-            rows.append(dict(A=a, B=b.replace("__SEED__", "__"), seed=seed,
-                             A_right_B_wrong=n01, A_wrong_B_right=n10, mcnemar_p=round(p, 4),
-                             delta_macro_f1=round(d_f1, 4), ci_low=round(lo, 4), ci_high=round(hi, 4)))
-            print(f"{a:28s} -> {b:40s} seed {seed}: p={p:.3f}, dF1={d_f1:+.4f} [{lo:+.4f}, {hi:+.4f}]")
+    jobs = [(a, b, seed) for a, b in PAIRS for seed in SEEDS] + [(a, b, 0) for a, b in SVM_PAIRS]
+    for a, b, seed in jobs:
+        if not (result_file(a, seed).exists() and result_file(b, seed).exists()):
+            print(f"[skip] {a} -> {b} seed {seed}: result file missing")
+            continue
+        true, pa = load_predictions(a, seed, y_names)
+        true_b, pb = load_predictions(b, seed, y_names)
+        assert (true == true_b).all(), "test order differs between result files"
+        n01, n10, p = mcnemar_exact(pa == true, pb == true)
+        d_f1 = macro_f1(true, pb, len(labels)) - macro_f1(true, pa, len(labels))
+        lo, hi = bootstrap_f1_diff(true, pa, pb, len(labels), rng)
+        rows.append(dict(A=a, B=b.replace("__SEED__", "__"), seed=seed,
+                         A_right_B_wrong=n01, A_wrong_B_right=n10, mcnemar_p=round(p, 4),
+                         delta_macro_f1=round(d_f1, 4), ci_low=round(lo, 4), ci_high=round(hi, 4)))
+        print(f"{a:28s} -> {b:40s} seed {seed}: p={p:.3f}, dF1={d_f1:+.4f} [{lo:+.4f}, {hi:+.4f}]")
     df = pd.DataFrame(rows)
     out = Path(config.REPORTS_DIR)
     df.to_csv(out / "significance.csv", index=False)

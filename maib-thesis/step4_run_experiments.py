@@ -2,14 +2,14 @@
 STEP 4 - Run the whole experiment table (proposal steps 2b, 2c, 3 and 4).
 
 config.EXPERIMENTS has 6 (model, loss) pairs, each trained with every seed in config.SEEDS:
-6 x 3 = 18 training runs.
+6 x 2 = 12 training runs.
 
 A run whose result file already exists is skipped. If the computer stops half way,
 run the same command again and it continues where it stopped.
 
   python step4_run_experiments.py                     # laptop GPU (batch 8, 4 accumulation steps)
   python step4_run_experiments.py --batch-size 32     # bigger GPU: same result, faster
-  python step4_run_experiments.py --seeds 1 2         # fewer seeds if short on time
+  python step4_run_experiments.py --seeds 1 2 3       # a third seed
   python step4_run_experiments.py --paper-settings    # optional: reference model with the paper's lr = 1e-6
   python step4_run_experiments.py --oversample        # oversampling runs (config.OVERSAMPLE_EXPERIMENTS)
   python step4_run_experiments.py --augment           # LLM data augmentation (config.AUGMENT_EXPERIMENTS), after step 7

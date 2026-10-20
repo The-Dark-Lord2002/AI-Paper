@@ -16,6 +16,7 @@
 | `step5_report.py` | گام ۵ | جدول نتایج، recall هر کلاس، ماتریس درهم‌ریختگی |
 | `step6_attention.py` | گام ۵ | تحلیل کیفی وزن‌های توجه |
 | `step7_augment.py` | تکمیلی | افزایش داده با مدل زبانی: بازنویسی گزارش‌های کلاس‌های کمیاب |
+| `step8_significance.py` | تکمیلی | آزمون معناداری (McNemar و bootstrap جفتی) روی پیش‌بینی‌های ذخیره‌شده؛ چند ثانیه، بدون آموزش |
 | `common.py` | — | توابع کمکی: خواندن داده، محاسبه‌ی معیارها |
 | `MAIB_Pipeline.ipynb` | — | اجرای همه‌ی گام‌ها به ترتیب در یک نوت‌بوک |
 
@@ -83,11 +84,12 @@ python step2_tfidf_svm.py                                   # SVM روی داد�
 python step4_run_experiments.py --augment --seeds 1 2       # ۴ اجرا، هر کدام حدود ۹۵ دقیقه
 python step4_run_experiments.py --bilstm-sizes --seeds 1 2  # ۶ اجرا، هر کدام حدود ۸۰ دقیقه
 python step5_report.py
+python step8_significance.py                                # آزمون معناداری (چند دقیقه روی CPU)
 ```
 
 - اگر اجرای `step4` قطع شد، همان دستور را دوباره بزن. اجراهایی که فایل نتیجه‌شان در `results/` هست رد می‌شوند.
 - `step7_augment.py` هم اگر قطع شد، با اجرای دوباره از همان‌جا ادامه می‌دهد. اگر حافظه‌ی GPU کم آمد، در `config.py` مدل کوچک‌تر `Qwen/Qwen2.5-0.5B-Instruct` را بگذار.
-- **`--seeds` را جا نینداز:** مقدار پیش‌فرض در `config.py` سه seed است و بدون آن، اجراهای seed سوم هم شروع می‌شوند.
+- **seedها:** مقدار پیش‌فرض در `config.py` همان دو seed نتایج گزارش‌شده است (۱ و ۲). برای seed سوم: `--seeds 1 2 3`.
 
 ## خروجی‌ها
 
