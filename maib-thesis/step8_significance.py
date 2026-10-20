@@ -54,6 +54,10 @@ def load_predictions(name, seed, y_true_names):
     d = json.loads(result_file(name, seed).read_text())
     pred = np.array(d["test_predictions"])
     true = np.array([d["labels"].index(lab) for lab in y_true_names])
+    # data/test.csv must be the test set these predictions were made on (same reports, same order)
+    if len(true) != len(pred) or abs(macro_f1(true, pred, len(d["labels"])) - d["test"]["macro_f1"]) > 1e-9:
+        raise SystemExit(f"data/test.csv does not match {result_file(name, seed).name}: the stored predictions "
+                         "were made on a different test set. Use the data folder the models were trained with.")
     return true, pred
 
 
