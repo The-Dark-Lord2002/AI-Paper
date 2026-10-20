@@ -77,7 +77,7 @@ Marine accident investigation bodies such as the UK Marine Accident Investigatio
 
 The task is difficult for three reasons. First, the classes are highly imbalanced, and the most safety-critical incident types, such as fire, capsizing and flooding, are among the rarest. A model optimized for overall accuracy can largely ignore them. Second, each report carries a single label although many incidents involve a chain of events, for example an engine failure followed by a grounding. Third, the reports contain domain-specific vocabulary that general-purpose language models rarely see during pre-training.
 
-Recent studies applied BERT-based models to maritime accident texts \cite{zhao2025causation,black2026domain,yu2026semantic,wang2026fire}. In particular, Zhao et al.\ \cite{zhao2025causation} combined BERT with a BiLSTM and reported that this architecture outperforms plain BERT. However, the compared models in that study were trained with different dropout, regularization, gradient-clipping and activation settings, no repeated runs were reported, and the main metric was accuracy. It therefore remains unclear whether the reported gain stems from the architecture or from the settings, and how the models perform on rare classes.
+Recent studies applied pre-trained Transformer encoders such as BERT and RoBERTa to maritime accident texts \cite{zhao2025causation,black2026domain,yu2026semantic,wang2026fire}. In particular, Zhao et al.\ \cite{zhao2025causation} combined BERT with a BiLSTM and reported that this architecture outperforms plain BERT. However, the compared models in that study were trained with different dropout, regularization, gradient-clipping and activation settings, no repeated runs were reported, and the main metric was accuracy. It therefore remains unclear whether the reported gain stems from the architecture or from the settings, and how the models perform on rare classes.
 
 In this paper, we revisit this question on a public dataset under a controlled protocol. We ask three research questions:
 \begin{itemize}
@@ -98,7 +98,7 @@ The rest of the paper is organized as follows: Section~\ref{sec:lit} reviews rel
 
 \subsection{NLP for Maritime Accident Reports}
 
-Zhao et al.\ \cite{zhao2025causation} classified accident causes in reports from China's coasts into 32 categories with BERT + BiLSTM and reported an accuracy of 89.8\%, followed by Apriori association-rule mining. Black et al.\ \cite{black2026domain} built a domain-adapted BERT model to classify human factors in maritime accident reports according to the SHIELD taxonomy. Yu et al.\ \cite{yu2026semantic} constructed a knowledge graph of ship collision reports, extracting entities with BERT--BiLSTM--CRF variants and classifying accident severity. Wang et al.\ \cite{wang2026fire} combined ontology-based information extraction with a dynamic Bayesian network to model the evolution of ship fire and explosion accidents. A BiLSTM on top of a BERT encoder is therefore a recurring design in this domain, which makes it important to test whether it is actually needed. In parallel, LLMs have entered the maritime domain \cite{nguyen2025llamarine,park2025aisllm}, but their use for generating training data for rare accident classes has not been examined.
+Zhao et al.\ \cite{zhao2025causation} classified accident causes in reports from China's coasts into 32 categories with BERT + BiLSTM and reported an accuracy of 89.8\%, followed by Apriori association-rule mining. Black et al.\ \cite{black2026domain} built a domain-adapted BERT model to classify human factors in maritime accident reports according to the SHIELD taxonomy. Yu et al.\ \cite{yu2026semantic} constructed a knowledge graph of ship collision reports, extracting entities with BERT--BiLSTM--CRF variants and classifying accident severity. Wang et al.\ \cite{wang2026fire} combined ontology-based information extraction, using XLM-RoBERTa with a BiLSTM--CRF tagger, with a dynamic Bayesian network to model the evolution of ship fire and explosion accidents. A BiLSTM on top of a BERT encoder is therefore a recurring design in this domain, which makes it important to test whether it is actually needed. In parallel, LLMs have entered the maritime domain \cite{nguyen2025llamarine,park2025aisllm}, but, to our knowledge, their use for generating training data for rare accident classes has not been examined.
 
 \subsection{Class Imbalance and Data Augmentation}
 
@@ -126,11 +126,13 @@ Following \cite{zhao2025causation}, the BERT + BiLSTM model feeds the token vect
 \subsubsection{Attention}
 Instead of keeping only the final states, the proposed model pools all BiLSTM states $\mathbf{h}_t$ with additive attention \cite{bahdanau2015neural,zhou2016attention}:
 \begin{equation}
-  e_t = \mathbf{v}^\top \tanh(\mathbf{W}\mathbf{h}_t), \quad
-  \alpha_t = \frac{\exp(e_t)}{\sum_{k}\exp(e_k)}, \quad
-  \mathbf{c} = \sum_t \alpha_t \mathbf{h}_t,
+\begin{aligned}
+  e_t &= \mathbf{v}^\top \tanh(\mathbf{W}\mathbf{h}_t + \mathbf{b}), \quad
+  \alpha_t = \frac{\exp(e_t)}{\sum_{k}\exp(e_k)}, \\
+  \mathbf{c} &= \textstyle\sum_t \alpha_t \mathbf{h}_t,
+\end{aligned}
 \end{equation}
-where $\mathbf{W}$ and $\mathbf{v}$ are trainable. The weights $\alpha_t$ are stored for analysis. In all models, the pooled vector passes through dropout (0.1) and a linear layer with nine outputs.
+where $\mathbf{W}$, $\mathbf{b}$ and $\mathbf{v}$ are trainable and the scoring layer has 128 units. The weights $\alpha_t$ are stored for analysis. In all models, the pooled vector passes through dropout (0.1) and a linear layer with nine outputs.
 
 % --- Fig. 1: framework diagram (drawn with TikZ) ---------------------
 \begin{figure}[t]
@@ -237,7 +239,7 @@ Total & 5,762 & 4,033 & 864 & 865 \\
 The classical baseline is a linear SVM \cite{joachims1998text} on TF-IDF features \cite{salton1988term} of words and word bigrams, ignoring terms that occur in only one report.
 
 \subsubsection{Training settings}
-All BERT-based models use the same recipe (Table~\ref{tab:settings}), so that differences in results can only come from the head, the loss or the data. For each run, the epoch with the highest validation macro-F1 is selected, and the test set is used only once, at the end of the run. Each configuration is trained with two seeds, and we report the mean and sample standard deviation. The recipe deliberately differs from the per-model settings of \cite{zhao2025causation}, whose learning rate of $10^{-6}$ for all layers did not converge within our epoch budget; using one recipe for all heads is what allows their effects to be compared. One run took about 75 minutes on a laptop GPU (NVIDIA GTX 1650 Ti, 4 GB), and about 91 minutes with the augmented training set.
+All BERT-based models use the same recipe (Table~\ref{tab:settings}), so that differences in results can only come from the head, the loss or the data. For each run, the epoch with the highest validation macro-F1 is selected, and the test set is used only once, at the end of the run. Each configuration is trained with two seeds, and we report the mean and sample standard deviation. The recipe deliberately differs from the per-model settings of \cite{zhao2025causation}, which use a learning rate of $10^{-6}$ for all layers, including the newly initialized ones, and would therefore need far more epochs than our budget allows; using one recipe for all heads is what allows their effects to be compared. One run took about 75 minutes on a laptop GPU (NVIDIA GTX 1650 Ti, 4 GB), and about 91 minutes with the augmented training set.
 
 % --- Table II: shared training recipe --------------------------------
 \begin{table}[t]
@@ -349,7 +351,7 @@ Under identical settings, neither the BiLSTM nor the attention layer improved on
 % ---------------------------------------------------------------------
 \subsection{Imbalance Treatments}
 
-A one-line change of the loss (wce) helped more than additional layers. Oversampling did not match it, although in expectation it gives each class the same total weight as wce; its random sampling adds noise, and in each epoch many reports of the large classes are not seen at all. LLM augmentation helped the SVM, whose bag-of-words features benefit from new vocabulary, more than BERT, which already generalizes over paraphrases through pre-training: on top of wce it added only 0.001 macro-F1, although it reduced the spread between seeds and gave the best configuration overall. Together with the small effect of oversampling, this suggests that the remaining errors on rare classes are semantic rather than due to a lack of examples.
+A one-line change of the loss (wce) helped more than additional layers. Oversampling did not match it, although in expectation it gives each class the same total weight as wce; its random sampling adds noise, and in each epoch many reports of the large classes are not seen at all. LLM augmentation helped the SVM, whose bag-of-words features benefit from new vocabulary, more than BERT, which already generalizes over paraphrases through pre-training, in line with the small gains of task-agnostic augmentation for pre-trained Transformers reported in \cite{longpre2020effective}: on top of wce it added only 0.001 macro-F1, although it reduced the spread between seeds and gave the best configuration overall. Together with the small effect of oversampling, this suggests that the remaining errors on rare classes are semantic rather than due to a lack of examples.
 
 % ---------------------------------------------------------------------
 \subsection{Attention and Error Analysis}
@@ -366,7 +368,7 @@ Fig.~\ref{fig:cm} shows the confusion matrix of the best configuration (Att + wc
 
 % --- Table V: top attention words per class --------------------------
 \begin{table}[t]
-\caption{Words with the highest total attention weight per class, summed over correctly classified test reports (Att + wce, seed 1; words shared by most classes, i.e., \emph{vessel}, \emph{crew}, \emph{crewmember}, \emph{member}, \emph{resulting}, \emph{damage}, \emph{suffered} and \emph{experienced}, omitted).}
+\caption{The five words with the highest total attention weight per class, summed over correctly classified test reports (Att + wce, seed 1; words shared by most classes, i.e., \emph{vessel}, \emph{crew}, \emph{crewmember}, \emph{member}, \emph{resulting}, \emph{damage}, \emph{suffered} and \emph{experienced}, omitted).}
 \label{tab:attention}
 \centering
 \footnotesize
@@ -375,13 +377,13 @@ Fig.~\ref{fig:cm} shows the confusion matrix of the best configuration (Att + wc
 Class & Top attention words \\
 \midrule
 Accident & fell, sustained, passenger, injury, fractured \\
-Capsizing & capsized, hit, entered, boat \\
+Capsizing & capsized, hit, entered, boat, feathering \\
 Collision & collided, pilot, manoeuvring, tanker, contact \\
-Contact & contact, quayside, struck, lock \\
+Contact & contact, quayside, manoeuvring, struck, lock \\
 Damage & \textbf{SOLAS, ladder, pilot, conform, regulations} \\
-Fire & engine, caught, smoke \\
-Flooding & ingress, water, taking, started \\
-Grounding & grounded, ran, aground, ingress \\
+Fire & engine, caught, smoke, extinguish \\
+Flooding & ingress, water, taking, started, motor \\
+Grounding & grounded, ran, aground, yacht, whilst \\
 Loss of Control & failure, engine, fouled, towed, propulsion \\
 \bottomrule
 \end{tabular}
