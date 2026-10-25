@@ -376,7 +376,7 @@ Class ($n$) & SVM & BERT & +BiLSTM & Att & +wce & +LLM \\
 
 % --- Table V: top attention words per class --------------------------
 \begin{table}[t]
-\caption{The five words with the highest total attention weight per class, summed over correctly classified test reports (Att + wce, seed 1). Words shared by most classes (vessel, crew, crewmember, member, resulting, damage, suffered and experienced) are omitted.}
+\caption{The five words with the highest total attention weight per class, summed over correctly classified test reports (best configuration, Att + wce + LLM augmentation, seed 1). Generic words that occur in reports of any class (vessel, crew, crewmember, member, resulting, damage, suffered, experienced) and the auxiliary verb ``did'' are omitted. FRC: fast rescue craft.}
 \label{tab:attention}
 \centering
 \footnotesize
@@ -384,20 +384,20 @@ Class ($n$) & SVM & BERT & +BiLSTM & Att & +wce & +LLM \\
 \toprule
 Class & Top attention words \\
 \midrule
-Accident & fell, sustained, passenger, injury, fractured \\
-Capsizing & capsized, hit, entered, boat, feathering \\
-Collision & collided, pilot, manoeuvring, tanker, contact \\
-Contact & contact, quayside, manoeuvring, struck, lock \\
-Damage & \textbf{SOLAS, ladder, pilot, conform, regulations} \\
-Fire & engine, caught, smoke, extinguish \\
-Flooding & ingress, water, taking, started, motor \\
-Grounding & grounded, ran, aground, yacht, whilst \\
-Loss of Control & failure, engine, fouled, towed, propulsion \\
+Accident & passenger, fell, ship, cruise, sustained \\
+Capsizing & capsized, boat, FRC, rescue, water \\
+Collision & pilot, manoeuvring, collided, tanker, moored \\
+Contact & contact, quayside, manoeuvring, cargo, lock \\
+Damage & \textbf{SOLAS, ladder, pilot, regulations, conform} \\
+Fire & engine, extinguish, caught, extinguished, smoke \\
+Flooding & water, ingress, taking, started, motor \\
+Grounding & grounded, aground, ran, water, rescue \\
+Loss of Control & failure, engine, fishing, towed, fouled \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:attention} lists the words with the highest attention for Att + wce. They are mostly the expected indicators, e.g., \emph{capsized}, \emph{ingress} or \emph{aground}. For Damage / Loss of Equipment, however, the top words \emph{SOLAS}, \emph{ladder}, \emph{pilot}, \emph{conform} and \emph{regulations} point to a recurring subgroup of reports on pilot ladders that do not conform to SOLAS requirements, hidden within a broad class. Attention weights show where the model looked, not why it decided \cite{elzini2022explainability}, but they are useful for exploring reports. The cause--consequence confusions, the shared attention words of related classes (\emph{contact} among the top words of Collision), and a linear baseline within 0.03 macro-F1 of the best model suggest that the ceiling of about 0.91 comes from the single-label annotation rather than from model capacity.
+Table~\ref{tab:attention} lists the words with the highest attention for the best configuration. They are mostly the expected indicators, e.g., \emph{capsized}, \emph{ingress} or \emph{aground}. For Damage / Loss of Equipment, however, the top words \emph{SOLAS}, \emph{ladder}, \emph{pilot}, \emph{regulations} and \emph{conform} point to a recurring subgroup of reports on pilot ladders that do not conform to SOLAS requirements, hidden within a broad class. Attention weights show where the model looked, not why it decided \cite{elzini2022explainability}, but they are useful for exploring reports. The cause--consequence confusions, the shared attention words of related classes (\emph{manoeuvring} among the top words of both Collision and Contact), and a linear baseline within 0.03 macro-F1 of the best model suggest that the ceiling of about 0.91 comes from the single-label annotation rather than from model capacity.
 
 \textbf{Limitations.} The results rest on two seeds, one data split and 15 Capsizing test reports, and no difference between the BERT-based configurations is significant. Training was limited to five epochs, $\gamma$ and $\beta$ were not tuned, only BERT-base was evaluated, and the 1.5B-parameter LLM occasionally changed minor details. Future work should add seeds and splits, evaluate domain-adapted encoders \cite{black2026domain}, and explore multi-label annotation that separates causes from consequences.
 
