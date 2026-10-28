@@ -1,0 +1,9 @@
+torch>=2.3
+transformers>=4.56
+datasets>=2.18
+scikit-learn>=1.3
+pandas>=2.0
+numpy
+tqdm
+openpyxl        # reading .xlsx files in step 2
+pypdf           # reading .pdf files in step 2 (only if you add PDFs)

@@ -1,0 +1,5 @@
+# large or rebuilt by the scripts
+models/
+corpus/
+data/
+__pycache__/

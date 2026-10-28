@@ -14,6 +14,7 @@ AI-Paper/
 │   ├── MAIB_Pipeline.ipynb          اجرای همه‌ی گام‌ها در یک نوت‌بوک
 │   ├── results/                     نتیجه‌ی هر اجرا (JSON)
 │   └── reports/                     جدول‌ها و نمودارها
+├── maib-bert-pretraining/           پروژه‌ی مستقل: پیش‌آموزش BERT روی متون دریایی (MLM) و سپس fine-tuning
 ├── docs/
 │   ├── proposal/                    پروپوزال (PDF و Word)
 │   └── papers/                      مقاله‌های مرتبط؛ مقاله‌ی مرجع با برچسب REFERENCE
