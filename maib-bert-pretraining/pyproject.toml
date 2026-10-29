@@ -1,0 +1,27 @@
+[project]
+name = "maib-bert-pretraining"
+version = "0.1.0"
+description = "Self-supervised (masked language modelling) pre-training of BERT on MAIB texts, then supervised fine-tuning"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "torch>=2.3",
+    "transformers>=4.56",
+    "datasets>=2.18",
+    "scikit-learn>=1.3",
+    "pandas>=2.0",
+    "numpy",
+    "tqdm",
+    "requests",        # step 0: download from gov.uk
+    "pypdf",           # step 2: read PDF files
+    "openpyxl",        # step 2: read .xlsx files
+]
+
+# PyTorch with CUDA (NVIDIA GPU) on Windows and Linux; macOS gets the normal CPU/MPS build.
+# CUDA 12.6 wheels run on any recent NVIDIA driver, including the GTX 1650 Ti.
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'linux' or sys_platform == 'win32'" }]

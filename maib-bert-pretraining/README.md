@@ -64,7 +64,7 @@ BERT باید حدس بزند:  aground
 - گزارش‌های کامل تحقیق حوادث، به‌صورت PDF.
 - هر دو متن دریایی بسیار مرتبط هستند.
 
-همه‌ی فایل‌ها (csv، xlsx، txt یا pdf) را در پوشه‌ی `corpus_sources/` بگذارید. استفاده از داده‌ی MAIB تحت Open Government Licence آزاد است؛ منبع را در پایان‌نامه ذکر کنید.
+`step0_download_sources.py` منبع ۲ (Safety Digestها) و گزارش‌های تحقیق MAIB تا 2020 را خودکار دانلود می‌کند. فایل‌های دیگر (csv، xlsx، txt یا pdf) را دستی در پوشه‌ی `corpus_sources/` بگذارید. استفاده از داده‌ی MAIB تحت Open Government Licence آزاد است؛ منبع را در پایان‌نامه ذکر کنید.
 
 **هدف:** حداقل حدود 2,000 متن یا 200 هزار کلمه بعد از حذف تکراری‌ها. اگر کمتر شد، PDFهای Safety Digest را اضافه کنید.
 
@@ -87,20 +87,23 @@ BERT باید حدس بزند:  aground
 
 ## ۵. اجرا
 
+با **uv** (پیشنهادی):
 ```bash
 cd maib-bert-pretraining
-python -m venv .venv
-source .venv/bin/activate            # در ویندوز: .venv\Scripts\activate
-pip install -r requirements.txt
+uv sync                                # یک بار: محیط و همه‌ی کتابخانه‌ها، از جمله PyTorch با CUDA
 
-python step1_prepare_data.py          # باید [ok] چاپ کند: همان تقسیم مقاله
-# فایل‌های داده‌ی دیگر را در corpus_sources/ بگذارید
-python step2_build_corpus.py          # خروجی: corpus/ و reports/corpus_summary.json
-python step3_pretrain_mlm.py --corpus external     # مرحله‌ی ۱، DAPT  -> models/bert-maib-external
-python step3_pretrain_mlm.py --corpus task         # مرحله‌ی ۱، TAPT  -> models/bert-maib-task
-python step5_run_all.py               # مرحله‌ی ۲: همه‌ی encoderها × پیکربندی‌ها × seedها
-python step6_compare.py               # جدول و آزمون‌ها -> reports/comparison.md
+uv run python step0_download_sources.py --dry-run   # فقط فهرست فایل‌ها، بدون دانلود
+uv run python step0_download_sources.py             # دانلود گزارش‌ها و Safety Digestهای تا 2020
+# (اختیاری) occurrences.csv را از MAIB Data Portal دستی دانلود کنید و در corpus_sources/ بگذارید
+uv run python step1_prepare_data.py    # باید [ok] چاپ کند: همان تقسیم مقاله
+uv run python step2_build_corpus.py    # خروجی: corpus/ و reports/corpus_summary.json
+uv run python step3_pretrain_mlm.py --corpus external     # مرحله‌ی ۱ (خودنظارتی): DAPT
+uv run python step3_pretrain_mlm.py --corpus task         # مرحله‌ی ۱ (خودنظارتی): TAPT
+uv run python step5_run_all.py         # مرحله‌ی ۲ (با ناظر)
+uv run python step6_compare.py         # جدول و آزمون‌ها -> reports/comparison.md
 ```
+
+بدون uv هم می‌شود: `pip install -r requirements.txt` و بعد همان دستورها بدون `uv run`.
 
 برای یک اجرای تکی:
 ```bash
@@ -128,6 +131,8 @@ python step5_run_all.py --skip-base
 | فایل | کار |
 |---|---|
 | `config.py` | همه‌ی تنظیمات |
+| `step0_download_sources.py` | دانلود خودکار گزارش‌ها و Safety Digestهای MAIB تا 2020 از gov.uk |
+| `pyproject.toml` | تعریف محیط برای uv |
 | `step1_prepare_data.py` | دیتاست برچسب‌دار با تقسیم مقاله، و چک یکسان بودن test |
 | `step2_build_corpus.py` | ساخت corpus بدون برچسب و حذف هم‌پوشانی با دیتاست برچسب‌دار |
 | `step3_pretrain_mlm.py` | مرحله‌ی ۱: Masked Language Modeling |
