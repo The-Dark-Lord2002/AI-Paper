@@ -69,8 +69,11 @@
 
 ## اجرا
 
+با **uv** (پیشنهادی): یک بار `uv sync` (محیط و کتابخانه‌ها، از جمله PyTorch با CUDA)، بعد هر دستور زیر را با `uv run` اجرا کنید، مثلاً `uv run python step1_prepare_data.py`. بدون uv: `pip install -r requirements.txt`.
+
+این پوشه مستقل است و می‌تواند به‌تنهایی روی سرور قرار بگیرد. `results/` (۲۷ فایل نتیجه، حدود ۴۵ MB)، `reports/` و `data/augmented.csv` همراه کد هستند، پس جدول‌ها و آزمون‌ها (`step5`، `step8`) بدون آموزش دوباره ساخته می‌شوند؛ فقط `step1` باید یک بار اجرا شود تا `data/train.csv` و بقیه دوباره ساخته شوند.
+
 ```bash
-pip install -r requirements.txt
 python step1_prepare_data.py                                # دادگان (چند ثانیه)
 python step2_tfidf_svm.py                                   # SVM با و بدون oversampling (چند ثانیه)
 python step4_run_experiments.py --seeds 1 2                 # ۱۲ اجرای BERT (حدود ۱۵ ساعت روی GTX 1650 Ti)

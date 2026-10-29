@@ -1,0 +1,6 @@
+# rebuilt by step1_prepare_data.py; data/augmented.csv (step 7, LLM rewrites) is kept on purpose,
+# because the rewrites cannot be regenerated exactly
+data/*
+!data/augmented.csv
+__pycache__/
+.venv/
