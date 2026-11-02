@@ -1,0 +1,222 @@
+"""
+STEP 3 - Stage 1, unsupervised: continue the pre-training of BERT with masked language modelling (MLM).
+
+How MLM works (the task BERT was originally pre-trained on, Devlin et al., 2019):
+  1. take a text                                  "the vessel ran aground on a sandbank"
+  2. hide 15% of its word-pieces at random        "the vessel ran [MASK] on a sandbank"
+  3. BERT predicts each hidden word-piece from its context; the loss is the cross-entropy of these
+     predictions only. No label is needed: the text is its own answer ("self-supervised").
+  Of the chosen 15%, 80% become [MASK], 10% a random word-piece and 10% stay unchanged, so BERT also
+  learns to check the words it can see.
+
+On maritime texts BERT learns words and phrases that are rare in its original data (Wikipedia and books):
+"allided", "girting", "FRC", "ingress", "pilot ladder", ... This is domain-adaptive pre-training (DAPT);
+on the task's own training texts it is task-adaptive pre-training (TAPT) (Gururangan et al., 2020).
+
+  python step3_pretrain_mlm.py --corpus external         # DAPT: the other dataset (step 2)
+  python step3_pretrain_mlm.py --corpus task             # TAPT: only the TRAINING reports of our dataset
+  python step3_pretrain_mlm.py --corpus external+task    # both
+
+Model selection: after every epoch, the MLM loss is measured on the VALIDATION reports of the labelled
+dataset (their text only) with the same fixed masks every time, and the epoch with the lowest loss is kept.
+The test reports are never read.
+
+Output: models/bert-maib-<corpus>/   the adapted BERT (weights + tokenizer), used by step 4
+        reports/pretrain_<corpus>.json  MLM loss and perplexity before and after, per epoch
+"""
+import argparse
+import copy
+import math
+import time
+from pathlib import Path
+
+import torch
+from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
+from transformers import AutoModelForMaskedLM, AutoTokenizer, get_linear_schedule_with_warmup
+
+import config
+from common import load_split, read_lines, save_json, set_seed
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--corpus", choices=["external", "task", "external+task"], required=True)
+parser.add_argument("--base-model", default=config.BASE_MODEL, help="the BERT to start from")
+parser.add_argument("--epochs", type=int, default=config.MLM_EPOCHS)
+parser.add_argument("--batch-size", type=int, default=config.MLM_BATCH_SIZE)
+parser.add_argument("--lr", type=float, default=config.MLM_LR)
+args = parser.parse_args()
+
+name = "bert-maib-" + args.corpus.replace("+", "-")
+out_dir = Path(config.MODELS_DIR) / name
+corpus_dir = Path(config.CORPUS_DIR)
+
+
+def mask_tokens(input_ids, special, tokenizer, generator):
+    """
+    Hide MLM_PROBABILITY of the word-pieces. Returns the masked input and the labels: the original id at
+    the hidden positions and -100 everywhere else (-100 = ignored by the loss).
+    special: True for [CLS], [SEP] and padding, which are never hidden.
+    """
+    labels = input_ids.clone()
+    probability = torch.full(input_ids.shape, config.MLM_PROBABILITY).masked_fill(special, 0.0)
+    chosen = torch.bernoulli(probability, generator=generator).bool()
+    for row in range(len(chosen)):                     # every text hides at least one word-piece
+        if not chosen[row].any():
+            chosen[row, (~special[row]).nonzero()[0]] = True
+    labels[~chosen] = -100
+
+    inputs = input_ids.clone()
+    to_mask = torch.bernoulli(torch.full(input_ids.shape, 0.8), generator=generator).bool() & chosen
+    inputs[to_mask] = tokenizer.mask_token_id                                     # 80%: [MASK]
+    to_random = torch.bernoulli(torch.full(input_ids.shape, 0.5), generator=generator).bool() & chosen & ~to_mask
+    random_ids = torch.randint(len(tokenizer), input_ids.shape, generator=generator)
+    inputs[to_random] = random_ids[to_random]                                     # 10%: a random word-piece
+    return inputs, labels                                                         # 10%: unchanged
+
+
+def make_loader(tokenizer, texts, batch_size, shuffle, seed):
+    encoded = tokenizer(texts, truncation=True, max_length=config.MLM_MAX_TOKENS, return_special_tokens_mask=True)
+    examples = list(zip(encoded["input_ids"], encoded["special_tokens_mask"]))
+
+    def collate(batch):
+        longest = max(len(ids) for ids, _ in batch)
+        input_ids = torch.full((len(batch), longest), tokenizer.pad_token_id, dtype=torch.long)
+        special = torch.ones((len(batch), longest), dtype=torch.bool)             # padding counts as special
+        attention_mask = torch.zeros((len(batch), longest), dtype=torch.long)
+        for i, (ids, spec) in enumerate(batch):
+            input_ids[i, :len(ids)] = torch.tensor(ids)
+            special[i, :len(ids)] = torch.tensor(spec, dtype=torch.bool)
+            attention_mask[i, :len(ids)] = 1
+        return input_ids, special, attention_mask
+
+    return DataLoader(examples, batch_size=batch_size, shuffle=shuffle, collate_fn=collate,
+                      generator=torch.Generator().manual_seed(seed))
+
+
+def fixed_masks(tokenizer, texts):
+    """Mask an evaluation set ONCE, so every epoch and the original BERT are scored on the same task."""
+    generator = torch.Generator().manual_seed(config.MLM_SEED)
+    batches = []
+    # small batches: the MLM output has one score per vocabulary word (30,522) for every word-piece
+    for input_ids, special, attention_mask in make_loader(tokenizer, texts, 2 * config.MLM_BATCH_SIZE, False, 0):
+        inputs, labels = mask_tokens(input_ids, special, tokenizer, generator)
+        batches.append((inputs, attention_mask, labels))
+    return batches
+
+
+@torch.no_grad()
+def mlm_loss(model, batches, device, use_amp):
+    """Mean cross-entropy over all hidden word-pieces of an evaluation set. Perplexity = exp(loss)."""
+    model.eval()
+    total, count = 0.0, 0
+    for inputs, attention_mask, labels in batches:
+        with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=use_amp):
+            logits = model(input_ids=inputs.to(device), attention_mask=attention_mask.to(device)).logits
+        hidden = labels.to(device) != -100                     # score only the hidden word-pieces
+        loss = torch.nn.functional.cross_entropy(logits[hidden].float(), labels.to(device)[hidden], reduction="sum")
+        total, count = total + loss.item(), count + int(hidden.sum())
+    return total / count
+
+
+def scores(model, eval_sets, device, use_amp):
+    out = {}
+    for key, batches in eval_sets.items():
+        loss = mlm_loss(model, batches, device, use_amp)
+        out[key] = {"loss": round(loss, 4), "perplexity": round(math.exp(loss), 2)}
+    return out
+
+
+def main():
+    set_seed(config.MLM_SEED)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    use_amp = device.type == "cuda"
+    grad_accum = max(1, config.MLM_EFFECTIVE_BATCH // args.batch_size)
+
+    # ------------------------------------------------------------------ texts
+    texts = []
+    for part in args.corpus.split("+"):
+        path = corpus_dir / f"{part}_train.txt"
+        if not path.exists():
+            raise SystemExit(f"{path} not found. Run step2_build_corpus.py first.")
+        texts += read_lines(path)
+    _, val, _, _ = load_split()
+    tokenizer = AutoTokenizer.from_pretrained(args.base_model)
+    eval_sets = {"labelled_val": fixed_masks(tokenizer, val["text"].tolist())}    # selects the best epoch
+    external_val = corpus_dir / "external_val.txt"
+    if external_val.exists() and read_lines(external_val):
+        eval_sets["external_val"] = fixed_masks(tokenizer, read_lines(external_val))
+    print(f"===== {name} =====  {len(texts)} texts, {sum(len(t.split()) for t in texts):,} words, "
+          f"device={device}, batch={args.batch_size} x {grad_accum}")
+
+    # ------------------------------------------------------------------ model and optimiser
+    model = AutoModelForMaskedLM.from_pretrained(args.base_model).to(device)
+    before = scores(model, eval_sets, device, use_amp)
+    print(f"[before] {before}")
+
+    loader = make_loader(tokenizer, texts, args.batch_size, shuffle=True, seed=config.MLM_SEED)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=config.MLM_WEIGHT_DECAY)
+    total_updates = -(-len(loader) // grad_accum) * args.epochs
+    scheduler = get_linear_schedule_with_warmup(optimizer, int(config.MLM_WARMUP_FRACTION * total_updates),
+                                                total_updates)
+    scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
+    mask_generator = torch.Generator().manual_seed(config.MLM_SEED)               # new masks every epoch
+
+    # ------------------------------------------------------------------ training loop
+    best_loss, best_epoch, best_weights, history = before["labelled_val"]["loss"], 0, None, []
+    start = time.time()
+    for epoch in range(1, args.epochs + 1):
+        model.train()
+        running = 0.0
+        progress = tqdm(loader, desc=f"epoch {epoch}/{args.epochs}", leave=False, mininterval=2)
+        for step, (input_ids, special, attention_mask) in enumerate(progress, start=1):
+            inputs, labels = mask_tokens(input_ids, special, tokenizer, mask_generator)
+            with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=use_amp):
+                loss = model(input_ids=inputs.to(device), attention_mask=attention_mask.to(device),
+                             labels=labels.to(device)).loss
+            scaler.scale(loss / grad_accum).backward()
+            running += loss.item()
+            if step % grad_accum == 0 or step == len(loader):
+                scaler.unscale_(optimizer)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+                scheduler.step()
+            progress.set_postfix(loss=f"{running / step:.4f}")
+
+        epoch_scores = scores(model, eval_sets, device, use_amp)
+        history.append({"epoch": epoch, "train_loss": round(running / len(loader), 4), **epoch_scores})
+        val_loss = epoch_scores["labelled_val"]["loss"]
+        print(f"[epoch {epoch}] train loss={running / len(loader):.4f}  {epoch_scores}  "
+              f"({(time.time() - start) / 60:.1f} min)")
+        if val_loss < best_loss:
+            best_loss, best_epoch = val_loss, epoch
+            best_weights = copy.deepcopy({k: v.cpu() for k, v in model.state_dict().items()})
+        elif epoch - best_epoch >= config.MLM_PATIENCE:
+            print(f"[early stop] no improvement for {config.MLM_PATIENCE} epochs")
+            break
+
+    # ------------------------------------------------------------------ save the best epoch
+    if best_weights is None:
+        print("[note] no epoch beat the original BERT on the validation reports; saving the last epoch anyway")
+        best_epoch = history[-1]["epoch"]
+    else:
+        model.load_state_dict(best_weights)
+    after = scores(model, eval_sets, device, use_amp)
+    model.save_pretrained(out_dir)
+    tokenizer.save_pretrained(out_dir)
+    summary = {
+        "model": name, "base_model": args.base_model, "corpus": args.corpus,
+        "corpus_texts": len(texts), "corpus_words": sum(len(t.split()) for t in texts),
+        "settings": {"mlm_probability": config.MLM_PROBABILITY, "max_tokens": config.MLM_MAX_TOKENS,
+                     "batch_size": args.batch_size, "grad_accum": grad_accum, "lr": args.lr,
+                     "epochs": args.epochs, "patience": config.MLM_PATIENCE, "device": str(device)},
+        "best_epoch": best_epoch, "train_minutes": round((time.time() - start) / 60, 1),
+        "before": before, "after": after, "history": history,
+    }
+    save_json(summary, Path(config.REPORTS_DIR) / f"pretrain_{args.corpus.replace('+', '-')}.json")
+    print(f"[after] {after}\nSaved {out_dir}/ (best epoch {best_epoch})")
+
+
+if __name__ == "__main__":
+    main()
