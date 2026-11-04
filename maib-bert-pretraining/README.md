@@ -94,6 +94,20 @@ uv sync          # محیط .venv و همه‌ی کتابخانه‌ها، از 
 uv run python -c "import torch; print(torch.cuda.is_available())"     # باید True چاپ کند
 ```
 
+**اگر `uv sync` با خطای timeout متوقف شد** (اینترنت کند یا محدود):
+```bash
+UV_HTTP_TIMEOUT=300 uv sync                       # ۱) همان کار، با صبر بیشتر
+uv sync --default-index <آدرس-میرور>/simple        # ۲) از یک میرور PyPI داخلی
+```
+آدرس دقیق میرور را از صفحه‌ی میرورهای Runflare یا Liara بردارید (فهرست میرورهای ایران: https://github.com/MiravaOrg/Mirava).
+برای اینکه همیشه از میرور استفاده شود، در فایل `~/.config/uv/uv.toml` بنویسید:
+```toml
+[[index]]
+url = "<آدرس-میرور>/simple"
+default = true
+```
+روی لینوکس PyTorch از همان PyPI (یا میرور) نصب می‌شود و CUDA را دارد؛ روی ویندوز از سرور PyTorch.
+
 **کل آزمایش با یک دستور:**
 ```bash
 uv run python run_pipeline.py
