@@ -2,17 +2,17 @@ TF-IDF + SVM & 0.904 & 0.874 & 0.885 & 0.914 & 0.827 \\
 TF-IDF + SVM + oversampling & 0.900 & 0.879 & 0.885 & 0.917 & 0.834 \\
 TF-IDF + SVM + LLM augm. & 0.901 & 0.883 & 0.889 & 0.916 & 0.850 \\
 \midrule
-BERT & 0.902{\tiny$\pm$.009} & 0.895{\tiny$\pm$.005} & 0.898{\tiny$\pm$.007} & 0.927{\tiny$\pm$.005} & \textbf{0.873}{\tiny$\pm$.008} \\
-BERT + BiLSTM \cite{zhao2025causation} & 0.917{\tiny$\pm$.008} & 0.892{\tiny$\pm$.013} & 0.901{\tiny$\pm$.004} & 0.928{\tiny$\pm$.001} & 0.851{\tiny$\pm$.040} \\
-BERT + BiLSTM + Att & 0.922{\tiny$\pm$.003} & 0.896{\tiny$\pm$.008} & 0.905{\tiny$\pm$.004} & 0.931{\tiny$\pm$.002} & 0.845{\tiny$\pm$.016} \\
+BERT & 0.902{\tiny$\pm$0.009} & 0.895{\tiny$\pm$0.005} & 0.898{\tiny$\pm$0.007} & 0.927{\tiny$\pm$0.005} & \textbf{0.873}{\tiny$\pm$0.008} \\
+BERT + BiLSTM \cite{zhao2025causation} & 0.917{\tiny$\pm$0.008} & 0.892{\tiny$\pm$0.013} & 0.901{\tiny$\pm$0.004} & 0.928{\tiny$\pm$0.001} & 0.851{\tiny$\pm$0.040} \\
+BERT + BiLSTM + Att & 0.922{\tiny$\pm$0.003} & 0.896{\tiny$\pm$0.008} & 0.905{\tiny$\pm$0.004} & 0.931{\tiny$\pm$0.002} & 0.845{\tiny$\pm$0.016} \\
 \midrule
-Att + wce & \underline{0.925}{\tiny$\pm$.005} & 0.908{\tiny$\pm$.005} & \underline{0.914}{\tiny$\pm$.006} & \textbf{0.935}{\tiny$\pm$.003} & \underline{0.868}{\tiny$\pm$.016} \\
-Att + focal & 0.918{\tiny$\pm$.006} & 0.897{\tiny$\pm$.005} & 0.905{\tiny$\pm$.001} & 0.930{\tiny$\pm$.001} & 0.858{\tiny$\pm$.012} \\
-Att + cb & 0.923{\tiny$\pm$.003} & 0.902{\tiny$\pm$.003} & 0.910{\tiny$\pm$.001} & \textbf{0.935}{\tiny$\pm$.004} & 0.857{\tiny$\pm$.000} \\
-Att + oversampling & 0.921{\tiny$\pm$.002} & 0.902{\tiny$\pm$.001} & 0.909{\tiny$\pm$.001} & 0.931{\tiny$\pm$.002} & 0.851{\tiny$\pm$.008} \\
-Att + LLM augm. & 0.915{\tiny$\pm$.011} & 0.906{\tiny$\pm$.005} & 0.908{\tiny$\pm$.009} & \underline{0.932}{\tiny$\pm$.004} & 0.862{\tiny$\pm$.008} \\
-Att + wce + LLM augm. (proposed) & \textbf{0.926}{\tiny$\pm$.009} & \textbf{0.910}{\tiny$\pm$.004} & \textbf{0.915}{\tiny$\pm$.002} & \textbf{0.935}{\tiny$\pm$.002} & \underline{0.868}{\tiny$\pm$.016} \\
+Att + wce & \underline{0.925}{\tiny$\pm$0.005} & 0.908{\tiny$\pm$0.005} & \underline{0.914}{\tiny$\pm$0.006} & \textbf{0.935}{\tiny$\pm$0.003} & \underline{0.868}{\tiny$\pm$0.016} \\
+Att + focal & 0.918{\tiny$\pm$0.006} & 0.897{\tiny$\pm$0.005} & 0.905{\tiny$\pm$0.001} & 0.930{\tiny$\pm$0.001} & 0.858{\tiny$\pm$0.012} \\
+Att + cb & 0.923{\tiny$\pm$0.003} & 0.902{\tiny$\pm$0.003} & 0.910{\tiny$\pm$0.001} & \textbf{0.935}{\tiny$\pm$0.004} & 0.857{\tiny$\pm$0.000} \\
+Att + oversampling & 0.921{\tiny$\pm$0.002} & 0.902{\tiny$\pm$0.001} & 0.909{\tiny$\pm$0.001} & 0.931{\tiny$\pm$0.002} & 0.851{\tiny$\pm$0.008} \\
+Att + LLM augm. & 0.915{\tiny$\pm$0.011} & 0.906{\tiny$\pm$0.005} & 0.908{\tiny$\pm$0.009} & \underline{0.932}{\tiny$\pm$0.004} & 0.862{\tiny$\pm$0.008} \\
+Att + wce + LLM augm. (proposed) & \textbf{0.926}{\tiny$\pm$0.009} & \textbf{0.910}{\tiny$\pm$0.004} & \textbf{0.915}{\tiny$\pm$0.002} & \textbf{0.935}{\tiny$\pm$0.002} & \underline{0.868}{\tiny$\pm$0.016} \\
 \midrule
-Att + wce, BiLSTM 384$\times$1 & 0.921{\tiny$\pm$.002} & 0.901{\tiny$\pm$.005} & 0.909{\tiny$\pm$.003} & 0.929{\tiny$\pm$.009} & 0.862{\tiny$\pm$.007} \\
-Att + wce, BiLSTM 128$\times$2 & 0.913{\tiny$\pm$.004} & \underline{0.909}{\tiny$\pm$.009} & 0.910{\tiny$\pm$.007} & \textbf{0.935}{\tiny$\pm$.007} & \textbf{0.873}{\tiny$\pm$.008} \\
-Att + wce, BiLSTM 384$\times$2 & 0.924{\tiny$\pm$.004} & 0.906{\tiny$\pm$.000} & 0.913{\tiny$\pm$.001} & \underline{0.932}{\tiny$\pm$.004} & \underline{0.868}{\tiny$\pm$.016} \\
+Att + wce, BiLSTM 384$\times$1 & 0.921{\tiny$\pm$0.002} & 0.901{\tiny$\pm$0.005} & 0.909{\tiny$\pm$0.003} & 0.929{\tiny$\pm$0.009} & 0.862{\tiny$\pm$0.007} \\
+Att + wce, BiLSTM 128$\times$2 & 0.913{\tiny$\pm$0.004} & \underline{0.909}{\tiny$\pm$0.009} & 0.910{\tiny$\pm$0.007} & \textbf{0.935}{\tiny$\pm$0.007} & \textbf{0.873}{\tiny$\pm$0.008} \\
+Att + wce, BiLSTM 384$\times$2 & 0.924{\tiny$\pm$0.004} & 0.906{\tiny$\pm$0.000} & 0.913{\tiny$\pm$0.001} & \underline{0.932}{\tiny$\pm$0.004} & \underline{0.868}{\tiny$\pm$0.016} \\
