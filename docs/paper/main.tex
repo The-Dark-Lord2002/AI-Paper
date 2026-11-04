@@ -5,7 +5,8 @@
 % Build: latexmk (reads latexmkrc), or pdflatex main -> bibtex main -> pdflatex main (x2)
 % Engine: pdfLaTeX only. IEEE needs Times; XeLaTeX and LuaLaTeX set the text in Latin Modern,
 %         whose wider letters push the paper to 7 pages. The check below stops such a build.
-% Bibliography: refs.bib (journal articles only) | Figures: figures/ | Tables III and IV: tables/ (python make_tables.py)
+% Bibliography: refs.bib (journal articles only), style IEEEtran.bst (kept here, so BibTeX does not depend on
+%               the TeX installation) | Figures: figures/ | Tables III and IV: tables/ (python make_tables.py)
 % =====================================================================
 
 \ifdefined\XeTeXversion
