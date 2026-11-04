@@ -108,13 +108,37 @@ def read_table(path):
 
 
 def read_pdf(path):
+    """
+    The running text of a PDF report or digest, without the parts that are not prose: running headers and
+    footers (lines repeated on many pages), page numbers, tables of numbers, table-of-contents lines
+    ("1.2 Narrative ........ 4"), web and e-mail addresses.
+    """
     try:
         from pypdf import PdfReader
     except ImportError:
-        raise SystemExit("Reading PDF files needs pypdf:  pip install pypdf")
-    text = " ".join(page.extract_text() or "" for page in PdfReader(path).pages)
-    text = re.sub(r"-\s+(?=[a-z])", "", text)      # join words hyphenated at a line end
-    print(f"{path.name}: {len(text.split())} words")
+        raise SystemExit("Reading PDF files needs pypdf:  uv add pypdf  (or: pip install pypdf)")
+    try:
+        pages = [page.extract_text() or "" for page in PdfReader(path).pages]
+    except Exception as error:                      # a damaged or encrypted file: skip it, keep going
+        print(f"[skip] {path.name}: cannot be read ({error})")
+        return []
+    page_lines = [[line.strip() for line in page.splitlines() if line.strip()] for page in pages]
+    # a running header or footer is a line at the top or bottom of many pages; body text is never removed this way
+    edges = Counter(line for lines in page_lines for line in set(lines[:3] + lines[-3:]))
+    repeated = {line for line, n in edges.items() if n >= max(3, 0.3 * len(pages))}
+    kept = []
+    for lines in page_lines:
+        for line in lines:
+            if not line or line in repeated:
+                continue
+            visible = line.replace(" ", "")
+            if sum(c.isalpha() for c in visible) < 0.6 * len(visible):   # page numbers, tables of figures
+                continue
+            if re.search(r"\.{4,}|https?://|www\.|\S+@\S+", line):        # contents lines, addresses
+                continue
+            kept.append(line)
+    text = re.sub(r"(?<=[a-z])-\s+(?=[a-z])", "", " ".join(kept))   # join words hyphenated at a line end
+    print(f"{path.name}: {len(pages)} pages, {len(text.split())} words of running text")
     return [text]
 
 
@@ -129,17 +153,19 @@ READERS = {".csv": read_table, ".xlsx": read_table, ".xls": read_table, ".pdf": 
 # ----------------------------------------------------------------------------- 1. read every source file
 files = sorted(p for p in Path(args.sources).rglob("*") if p.suffix.lower() in READERS)
 if not files:
-    raise SystemExit(f"No .csv/.xlsx/.txt/.pdf files in {args.sources}/. See README.md, section 'Data'.")
+    print(f"[note] no .csv/.xlsx/.txt/.pdf files in {args.sources}/: only the task corpus (TAPT) is built.\n"
+          "       For the other dataset (DAPT) run step0_download_sources.py first; see README.md.")
 raw = []
 per_source = Counter()
 for path in files:
+    folder = path.parent.name if path.parent != Path(args.sources) else path.name
     for text in READERS[path.suffix.lower()](path):
         for piece in chunks(tidy(text)):
-            raw.append((path.name, piece))
-            per_source[path.name] += 1
+            raw.append((folder, piece))
+            per_source[folder] += 1
 
 # ----------------------------------------------------------------------------- 2. clean
-summary = {"files": [p.name for p in files], "texts_read": len(raw)}
+summary = {"files": len(files), "texts_read": len(raw)}
 texts, seen = [], set()
 short = duplicates = 0
 for source, text in raw:
@@ -176,6 +202,7 @@ for doc_id, grams in enumerate(labelled_ngrams):
         index[g].append(doc_id)
 
 kept, exact, near = [], 0, 0
+kept_per_source = Counter()
 for source, text in texts:
     tokens = words(text)
     if " ".join(tokens) in labelled_exact:
@@ -188,18 +215,20 @@ for source, text in texts:
         near += 1
         continue
     kept.append(text)
+    kept_per_source[source] += 1
 summary.update({"removed_labelled_exact": exact, "removed_labelled_near_copy": near, "kept_texts": len(kept)})
 
 # ----------------------------------------------------------------------------- 4. save
 random.Random(config.MLM_SEED).shuffle(kept)
-n_val = max(1, round(config.MLM_VAL_FRACTION * len(kept))) if len(kept) > 1 else 0
+n_val = max(1, round(config.MLM_VAL_FRACTION * len(kept))) if len(kept) > 1 else 0   # 0 if no other dataset
 corpus = Path(config.CORPUS_DIR)
 write_lines(kept[n_val:], corpus / "external_train.txt")
 write_lines(kept[:n_val], corpus / "external_val.txt")
 write_lines(train["text"].tolist(), corpus / "task_train.txt")    # TRAINING reports only, never val or test
 
 summary.update({
-    "texts_per_file": dict(per_source),
+    "texts_per_source": dict(per_source),
+    "kept_per_source": dict(kept_per_source),
     "external_train_texts": len(kept) - n_val,
     "external_val_texts": n_val,
     "external_words": sum(len(t.split()) for t in kept),
@@ -215,5 +244,5 @@ print(f"Corpus: {len(kept)} texts, {summary['external_words']:,} words -> {corpu
 print(f"Task corpus: {len(train)} training reports -> {corpus}/task_train.txt")
 if exact + near > 0.5 * max(1, len(texts)):
     print("[note] most source texts were already in the labelled dataset: the source covers the same years.")
-if len(kept) < 1000:
+if 0 < len(kept) < 1000:
     print("[note] the corpus is small; more text (e.g. MAIB Safety Digests as PDF) usually helps stage 1.")

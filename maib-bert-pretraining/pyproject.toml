@@ -16,6 +16,10 @@ dependencies = [
     "openpyxl",        # step 2: read .xlsx files
 ]
 
+# Scripts, not an installable package: `uv sync` only installs the dependencies.
+[tool.uv]
+package = false
+
 # PyTorch with CUDA (NVIDIA GPU) on Windows and Linux; macOS gets the normal CPU/MPS build.
 # CUDA 12.6 wheels run on any recent NVIDIA driver, including the GTX 1650 Ti.
 [[tool.uv.index]]

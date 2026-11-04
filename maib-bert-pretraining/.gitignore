@@ -3,3 +3,4 @@ models/
 corpus/
 data/
 __pycache__/
+.venv/

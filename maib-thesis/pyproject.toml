@@ -14,6 +14,10 @@ dependencies = [
     "tqdm",
 ]
 
+# Scripts, not an installable package: `uv sync` only installs the dependencies.
+[tool.uv]
+package = false
+
 # PyTorch with CUDA (NVIDIA GPU) on Windows and Linux; macOS gets the normal CPU/MPS build.
 [[tool.uv.index]]
 name = "pytorch-cu126"

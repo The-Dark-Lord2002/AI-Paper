@@ -16,6 +16,7 @@ on the task's own training texts it is task-adaptive pre-training (TAPT) (Gurura
   python step3_pretrain_mlm.py --corpus external         # DAPT: the other dataset (step 2)
   python step3_pretrain_mlm.py --corpus task             # TAPT: only the TRAINING reports of our dataset
   python step3_pretrain_mlm.py --corpus external+task    # both
+  python step3_pretrain_mlm.py --corpus external --max-texts 20000 --epochs 3   # a shorter run on a big corpus
 
 Model selection: after every epoch, the MLM loss is measured on the VALIDATION reports of the labelled
 dataset (their text only) with the same fixed masks every time, and the epoch with the lowest loss is kept.
@@ -27,6 +28,7 @@ Output: models/bert-maib-<corpus>/   the adapted BERT (weights + tokenizer), use
 import argparse
 import copy
 import math
+import random
 import time
 from pathlib import Path
 
@@ -44,6 +46,8 @@ parser.add_argument("--base-model", default=config.BASE_MODEL, help="the BERT to
 parser.add_argument("--epochs", type=int, default=config.MLM_EPOCHS)
 parser.add_argument("--batch-size", type=int, default=config.MLM_BATCH_SIZE)
 parser.add_argument("--lr", type=float, default=config.MLM_LR)
+parser.add_argument("--max-texts", type=int,
+                    help="use at most this many texts of the other dataset (random, fixed seed): a shorter run")
 args = parser.parse_args()
 
 name = "bert-maib-" + args.corpus.replace("+", "-")
@@ -138,7 +142,13 @@ def main():
         path = corpus_dir / f"{part}_train.txt"
         if not path.exists():
             raise SystemExit(f"{path} not found. Run step2_build_corpus.py first.")
-        texts += read_lines(path)
+        lines = read_lines(path)
+        if not lines:
+            raise SystemExit(f"{path} is empty: there is no text of the other dataset. Download it with "
+                             "step0_download_sources.py, then run step2_build_corpus.py again.")
+        if part == "external" and args.max_texts and len(lines) > args.max_texts:
+            lines = random.Random(config.MLM_SEED).sample(lines, args.max_texts)
+        texts += lines
     _, val, _, _ = load_split()
     tokenizer = AutoTokenizer.from_pretrained(args.base_model)
     eval_sets = {"labelled_val": fixed_masks(tokenizer, val["text"].tolist())}    # selects the best epoch
@@ -187,8 +197,9 @@ def main():
         epoch_scores = scores(model, eval_sets, device, use_amp)
         history.append({"epoch": epoch, "train_loss": round(running / len(loader), 4), **epoch_scores})
         val_loss = epoch_scores["labelled_val"]["loss"]
+        minutes = (time.time() - start) / 60
         print(f"[epoch {epoch}] train loss={running / len(loader):.4f}  {epoch_scores}  "
-              f"({(time.time() - start) / 60:.1f} min)")
+              f"({minutes:.1f} min; at most {minutes / epoch * (args.epochs - epoch):.0f} min left)")
         if val_loss < best_loss:
             best_loss, best_epoch = val_loss, epoch
             best_weights = copy.deepcopy({k: v.cpu() for k, v in model.state_dict().items()})
@@ -210,7 +221,8 @@ def main():
         "corpus_texts": len(texts), "corpus_words": sum(len(t.split()) for t in texts),
         "settings": {"mlm_probability": config.MLM_PROBABILITY, "max_tokens": config.MLM_MAX_TOKENS,
                      "batch_size": args.batch_size, "grad_accum": grad_accum, "lr": args.lr,
-                     "epochs": args.epochs, "patience": config.MLM_PATIENCE, "device": str(device)},
+                     "epochs": args.epochs, "patience": config.MLM_PATIENCE, "max_texts": args.max_texts,
+                     "device": str(device)},
         "best_epoch": best_epoch, "train_minutes": round((time.time() - start) / 60, 1),
         "before": before, "after": after, "history": history,
     }

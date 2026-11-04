@@ -85,30 +85,46 @@ BERT باید حدس بزند:  aground
 
 ---
 
-## ۵. اجرا
+## ۵. اجرا (با uv)
 
-با **uv** (پیشنهادی):
+**یک بار، نصب:**
 ```bash
 cd maib-bert-pretraining
-uv sync                                # یک بار: محیط و همه‌ی کتابخانه‌ها، از جمله PyTorch با CUDA
-
-uv run python step0_download_sources.py --dry-run   # فقط فهرست فایل‌ها، بدون دانلود
-uv run python step0_download_sources.py             # دانلود گزارش‌ها و Safety Digestهای تا 2020
-# (اختیاری) occurrences.csv را از MAIB Data Portal دستی دانلود کنید و در corpus_sources/ بگذارید
-uv run python step1_prepare_data.py    # باید [ok] چاپ کند: همان تقسیم مقاله
-uv run python step2_build_corpus.py    # خروجی: corpus/ و reports/corpus_summary.json
-uv run python step3_pretrain_mlm.py --corpus external     # مرحله‌ی ۱ (خودنظارتی): DAPT
-uv run python step3_pretrain_mlm.py --corpus task         # مرحله‌ی ۱ (خودنظارتی): TAPT
-uv run python step5_run_all.py         # مرحله‌ی ۲ (با ناظر)
-uv run python step6_compare.py         # جدول و آزمون‌ها -> reports/comparison.md
+uv sync          # محیط .venv و همه‌ی کتابخانه‌ها، از جمله PyTorch با CUDA (حدود ۲ تا ۳ گیگابایت دانلود)
+uv run python -c "import torch; print(torch.cuda.is_available())"     # باید True چاپ کند
 ```
 
-بدون uv هم می‌شود: `pip install -r requirements.txt` و بعد همان دستورها بدون `uv run`.
-
-برای یک اجرای تکی:
+**کل آزمایش با یک دستور:**
 ```bash
-python step4_finetune.py --model bert_bilstm_att --loss wce --seed 1 --encoder models/bert-maib-external
+uv run python run_pipeline.py
 ```
+این دستور به ترتیب این کارها را انجام می‌دهد و اگر وسط کار قطع شد، با اجرای دوباره‌ی همان دستور، کارهای تمام‌شده را رد می‌کند:
+
+| ترتیب | اسکریپت | کار |
+|---|---|---|
+| ۱ | `step0` | دانلود گزارش‌ها و Safety Digestهای MAIB تا 2020 (فقط اگر `corpus_sources/` خالی باشد) |
+| ۲ | `step1` | دیتاست برچسب‌دار شما با تقسیم مقاله؛ اگر test با مقاله یکی نباشد، **متوقف می‌شود** |
+| ۳ | `step2` | ساخت corpus: تمیز کردن PDFها (سرصفحه، شماره‌ی صفحه، فهرست، آدرس وب) و حذف هر متنی که در دیتاست شما هست |
+| ۴ | `step3` | مرحله‌ی ۱، خودنظارتی (ماسک کردن): یک بار روی train شما (TAPT) و یک بار روی دیتاست دیگر (DAPT) |
+| ۵ | `step5` | مرحله‌ی ۲، با ناظر: fine-tuning روی train شما و تست روی test شما، برای BERT اصلی و هر دو BERT دریایی |
+| ۶ | `step6` | جدول مقایسه و آزمون‌های معناداری → `reports/comparison.md` |
+
+**گزینه‌ها:**
+```bash
+uv run python run_pipeline.py --corpora task                # فقط با دیتاست خودتان (بدون دانلود)
+uv run python run_pipeline.py --since 2010 --max-reports 100   # دانلود کمتر برای شروع
+uv run python run_pipeline.py --max-texts 20000 --mlm-epochs 3 # مرحله‌ی ۱ کوتاه‌تر روی corpus بزرگ
+uv run python run_pipeline.py --skip-base                   # BERT اصلی از نتایج مقاله (پایین را ببینید)
+```
+
+**اجرای تک‌تک مراحل** هم ممکن است، مثلاً:
+```bash
+uv run python step0_download_sources.py --dry-run           # فقط فهرست فایل‌ها، بدون دانلود
+uv run python step3_pretrain_mlm.py --corpus task
+uv run python step4_finetune.py --model bert_bilstm_att --loss wce --seed 1 --encoder models/bert-maib-external
+```
+
+بدون uv: `pip install -r requirements.txt` و بعد همان دستورها بدون `uv run`.
 
 **زمان تقریبی روی GTX 1650 Ti (4 GB):**
 - step 3: حدود ۴ دقیقه برای هر 1,000 متن در هر epoch. مثلاً 5,000 متن × 10 epoch حدود ۳ ساعت، ولی توقف زودهنگام معمولاً زودتر تمامش می‌کند.
@@ -120,7 +136,7 @@ python step4_finetune.py --model bert_bilstm_att --loss wce --seed 1 --encoder m
 
 این چهار فایل را در `results/` همین پوشه کپی کنید و بعد این را اجرا کنید:
 ```bash
-python step5_run_all.py --skip-base
+uv run python run_pipeline.py --skip-base
 ```
 اسکریپت `step6_compare.py` فایل‌های بدون فیلد encoder را «base» حساب می‌کند. اگر فایلی روی test دیگری ساخته شده باشد، خطا می‌دهد.
 
@@ -131,6 +147,7 @@ python step5_run_all.py --skip-base
 | فایل | کار |
 |---|---|
 | `config.py` | همه‌ی تنظیمات |
+| `run_pipeline.py` | **کل آزمایش با یک دستور**، به ترتیب و قابل ادامه بعد از قطع شدن |
 | `step0_download_sources.py` | دانلود خودکار گزارش‌ها و Safety Digestهای MAIB تا 2020 از gov.uk |
 | `pyproject.toml` | تعریف محیط برای uv |
 | `step1_prepare_data.py` | دیتاست برچسب‌دار با تقسیم مقاله، و چک یکسان بودن test |
