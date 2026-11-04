@@ -34,7 +34,7 @@ BLOCKS = [
      ("bert_bilstm_att + cb", "Att + cb"),
      ("bert_bilstm_att + ce [oversample]", "Att + oversampling"),
      ("bert_bilstm_att + ce [augment]", "Att + LLM augm."),
-     ("bert_bilstm_att + wce [augment]", "Att + wce + LLM augm.")],
+     ("bert_bilstm_att + wce [augment]", "Att + wce + LLM augm. (proposed)")],
     [("bert_bilstm_att + wce [h384_l1]", "Att + wce, BiLSTM 384$\\times$1"),
      ("bert_bilstm_att + wce [h128_l2]", "Att + wce, BiLSTM 128$\\times$2"),
      ("bert_bilstm_att + wce [h384_l2]", "Att + wce, BiLSTM 384$\\times$2")],
