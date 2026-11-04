@@ -1,8 +1,19 @@
+% !TEX program = pdflatex
+% !BIB program = bibtex
 % =====================================================================
 % main.tex -- IEEE conference paper (limit: 6 pages)
-% Build: pdflatex main -> bibtex main -> pdflatex main (x2)
+% Build: latexmk (reads latexmkrc), or pdflatex main -> bibtex main -> pdflatex main (x2)
+% Engine: pdfLaTeX only. IEEE needs Times; XeLaTeX and LuaLaTeX set the text in Latin Modern,
+%         whose wider letters push the paper to 7 pages. The check below stops such a build.
 % Bibliography: refs.bib (journal articles only) | Figures: figures/ | Tables III and IV: tables/ (python make_tables.py)
 % =====================================================================
+
+\ifdefined\XeTeXversion
+  \errmessage{Compile main.tex with pdfLaTeX, not XeLaTeX: IEEE needs Times, XeLaTeX uses Latin Modern and the paper grows to 7 pages}
+\fi
+\ifdefined\directlua
+  \errmessage{Compile main.tex with pdfLaTeX, not LuaLaTeX: IEEE needs Times, LuaLaTeX uses Latin Modern and the paper grows to 7 pages}
+\fi
 
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts

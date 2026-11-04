@@ -1,0 +1,6 @@
+# Read by latexmk when it runs in this folder: `latexmk` builds main.pdf with pdfLaTeX and BibTeX.
+# pdfLaTeX, not XeLaTeX or LuaLaTeX: IEEE needs Times, and the other engines switch to Latin Modern,
+# whose wider letters push the paper to 7 pages.
+@default_files = ('main.tex');
+$pdf_mode = 1;      # pdflatex
+$bibtex_use = 2;    # run bibtex whenever refs.bib or the citations change; `latexmk -c` also removes main.bbl
