@@ -90,7 +90,8 @@ def marks(values):
 def cell(mean, std, mark):
     text = f"{mean:.3f}"
     text = {"best": f"\\textbf{{{text}}}", "second": f"\\underline{{{text}}}"}.get(mark, text)
-    return text + (f"{{\\tiny$\\pm${std:.3f}}}".replace("0.", ".", 1) if std is not None else "")
+    # IEEE style: a zero before the decimal point, also in the standard deviation (0.009, not .009)
+    return text + (f"{{\\tiny$\\pm${std:.3f}}}" if std is not None else "")
 
 
 OUT.mkdir(exist_ok=True)
