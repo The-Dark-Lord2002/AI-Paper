@@ -11,6 +11,7 @@ The experiment has two stages:
 # ---------------------------------------------------------------- labelled dataset (stage 2)
 # Identical to the paper (maib-thesis/config.py), so the results of both projects can be compared.
 DATASET = "baker-street/maib-incident-reports-5K"   # Hugging Face dataset id
+DATASET_FILE = "maib-incident-reports-dataset.jsonl"  # its one data file
 SPLIT_SEED = 42                # the train/val/test split is made ONCE with this seed
 MIN_REPORTS_PER_CLASS = 20     # classes with fewer reports are dropped
 
