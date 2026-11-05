@@ -1,0 +1,18 @@
+# Conda environment (Miniconda or Miniforge); every package comes from conda-forge, nothing from PyPI.
+#   conda env create -f environment.yml
+#   conda activate maib-thesis
+# pytorch-gpu: conda chooses the CUDA build that the installed NVIDIA driver supports.
+name: maib-thesis
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11
+  - pytorch-gpu>=2.3
+  - transformers>=4.56
+  - datasets>=2.18
+  - scikit-learn>=1.3
+  - pandas>=2.0
+  - numpy
+  - matplotlib
+  - tqdm

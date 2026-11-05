@@ -108,6 +108,16 @@ default = true
 ```
 روی لینوکس PyTorch از همان PyPI (یا میرور) نصب می‌شود و CUDA را دارد؛ روی ویندوز از سرور PyTorch.
 
+**یا با Miniconda** (همه‌ی بسته‌ها از conda-forge، بدون PyPI؛ conda خودش نسخه‌ی CUDA سازگار با درایور را انتخاب می‌کند):
+```bash
+conda config --set remote_read_timeout_secs 600   # یک بار: صبر بیشتر روی اینترنت کند
+conda config --set remote_max_retries 10
+conda env create -f environment.yml               # یک بار، حدود ۳ گیگابایت
+conda activate maib-bert-pretraining              # در هر ترمینال جدید
+python -c "import torch; print(torch.cuda.is_available())"   # باید True باشد
+```
+با conda همه‌ی دستورهای پایین را **بدون `uv run`** اجرا کنید، مثلاً `python run_pipeline.py`.
+
 **کل آزمایش با یک دستور:**
 ```bash
 uv run python run_pipeline.py
@@ -164,6 +174,7 @@ uv run python run_pipeline.py --skip-base
 | `run_pipeline.py` | **کل آزمایش با یک دستور**، به ترتیب و قابل ادامه بعد از قطع شدن |
 | `step0_download_sources.py` | دانلود خودکار گزارش‌ها و Safety Digestهای MAIB تا 2020 از gov.uk |
 | `pyproject.toml` | تعریف محیط برای uv |
+| `environment.yml` | تعریف محیط برای conda (Miniconda) |
 | `step1_prepare_data.py` | دیتاست برچسب‌دار با تقسیم مقاله، و چک یکسان بودن test |
 | `step2_build_corpus.py` | ساخت corpus بدون برچسب و حذف هم‌پوشانی با دیتاست برچسب‌دار |
 | `step3_pretrain_mlm.py` | مرحله‌ی ۱: Masked Language Modeling |
