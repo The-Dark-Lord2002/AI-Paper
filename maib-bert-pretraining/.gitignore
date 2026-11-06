@@ -4,3 +4,5 @@ corpus/
 data/
 __pycache__/
 .venv/
+*.resume.pt
+*.resume.pt.tmp

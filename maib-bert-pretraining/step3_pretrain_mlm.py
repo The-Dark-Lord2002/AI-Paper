@@ -22,6 +22,9 @@ Model selection: after every epoch, the MLM loss is measured on the VALIDATION r
 dataset (their text only) with the same fixed masks every time, and the epoch with the lowest loss is kept.
 The test reports are never read.
 
+If the run stops (power cut, Ctrl+C), the same command continues after the last finished epoch: the state is
+saved after every epoch in models/bert-maib-<corpus>.resume.pt (about 2 GB, deleted when the run ends).
+
 Output: models/bert-maib-<corpus>/   the adapted BERT (weights + tokenizer), used by step 4
         reports/pretrain_<corpus>.json  MLM loss and perplexity before and after, per epoch
 """
@@ -38,7 +41,8 @@ from tqdm.auto import tqdm
 from transformers import AutoModelForMaskedLM, AutoTokenizer, get_linear_schedule_with_warmup
 
 import config
-from common import load_split, read_lines, save_json, set_seed
+from common import (load_checkpoint, load_split, read_lines, rng_state, save_checkpoint, save_json, set_rng_state,
+                    set_seed)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--corpus", choices=["external", "task", "external+task"], required=True)
@@ -160,9 +164,6 @@ def main():
 
     # ------------------------------------------------------------------ model and optimiser
     model = AutoModelForMaskedLM.from_pretrained(args.base_model).to(device)
-    before = scores(model, eval_sets, device, use_amp)
-    print(f"[before] {before}")
-
     loader = make_loader(tokenizer, texts, args.batch_size, shuffle=True, seed=config.MLM_SEED)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=config.MLM_WEIGHT_DECAY)
     total_updates = -(-len(loader) // grad_accum) * args.epochs
@@ -171,10 +172,32 @@ def main():
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
     mask_generator = torch.Generator().manual_seed(config.MLM_SEED)               # new masks every epoch
 
+    # ------------------------------------------------------------------ start, or continue a stopped run
+    resume_path = Path(config.MODELS_DIR) / f"{name}.resume.pt"
+    settings = {"corpus": args.corpus, "base_model": args.base_model, "texts": len(texts), "epochs": args.epochs,
+                "batch_size": args.batch_size, "lr": args.lr, "max_texts": args.max_texts}
+    state = load_checkpoint(resume_path, settings)
+    if state is None:
+        before = scores(model, eval_sets, device, use_amp)
+        print(f"[before] {before}")
+        best_loss, best_epoch, best_weights, history, first_epoch, minutes_before = \
+            before["labelled_val"]["loss"], 0, None, [], 1, 0.0
+    else:
+        model.load_state_dict(state["model"])
+        optimizer.load_state_dict(state["optimizer"])
+        scheduler.load_state_dict(state["scheduler"])
+        scaler.load_state_dict(state["scaler"])
+        set_rng_state(state["rng"])
+        mask_generator.set_state(state["mask_rng"])
+        loader.generator.set_state(state["loader_rng"])
+        before, best_loss, best_epoch, best_weights, history = (state[k] for k in
+                                                                ("before", "best_loss", "best_epoch", "best_weights", "history"))
+        first_epoch = args.epochs + 1 if state["stopped"] else state["epoch"] + 1
+        minutes_before = state["minutes"]
+
     # ------------------------------------------------------------------ training loop
-    best_loss, best_epoch, best_weights, history = before["labelled_val"]["loss"], 0, None, []
     start = time.time()
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(first_epoch, args.epochs + 1):
         model.train()
         running = 0.0
         progress = tqdm(loader, desc=f"epoch {epoch}/{args.epochs}", leave=False, mininterval=2)
@@ -197,13 +220,21 @@ def main():
         epoch_scores = scores(model, eval_sets, device, use_amp)
         history.append({"epoch": epoch, "train_loss": round(running / len(loader), 4), **epoch_scores})
         val_loss = epoch_scores["labelled_val"]["loss"]
-        minutes = (time.time() - start) / 60
+        minutes = minutes_before + (time.time() - start) / 60
         print(f"[epoch {epoch}] train loss={running / len(loader):.4f}  {epoch_scores}  "
               f"({minutes:.1f} min; at most {minutes / epoch * (args.epochs - epoch):.0f} min left)")
         if val_loss < best_loss:
             best_loss, best_epoch = val_loss, epoch
             best_weights = copy.deepcopy({k: v.cpu() for k, v in model.state_dict().items()})
-        elif epoch - best_epoch >= config.MLM_PATIENCE:
+        stop = epoch - best_epoch >= config.MLM_PATIENCE
+        save_checkpoint({"settings": settings, "epoch": epoch, "stopped": stop or epoch == args.epochs,
+                         "model": model.state_dict(), "optimizer": optimizer.state_dict(),
+                         "scheduler": scheduler.state_dict(), "scaler": scaler.state_dict(),
+                         "rng": rng_state(), "mask_rng": mask_generator.get_state(),
+                         "loader_rng": loader.generator.get_state(), "before": before, "best_loss": best_loss,
+                         "best_epoch": best_epoch, "best_weights": best_weights, "history": history,
+                         "minutes": minutes}, resume_path)
+        if stop:
             print(f"[early stop] no improvement for {config.MLM_PATIENCE} epochs")
             break
 
@@ -223,10 +254,11 @@ def main():
                      "batch_size": args.batch_size, "grad_accum": grad_accum, "lr": args.lr,
                      "epochs": args.epochs, "patience": config.MLM_PATIENCE, "max_texts": args.max_texts,
                      "device": str(device)},
-        "best_epoch": best_epoch, "train_minutes": round((time.time() - start) / 60, 1),
+        "best_epoch": best_epoch, "train_minutes": round(minutes_before + (time.time() - start) / 60, 1),
         "before": before, "after": after, "history": history,
     }
     save_json(summary, Path(config.REPORTS_DIR) / f"pretrain_{args.corpus.replace('+', '-')}.json")
+    resume_path.unlink(missing_ok=True)                  # finished: the checkpoint is no longer needed
     print(f"[after] {after}\nSaved {out_dir}/ (best epoch {best_epoch})")
 
 

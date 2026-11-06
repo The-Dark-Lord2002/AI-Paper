@@ -1,7 +1,9 @@
 """
-Small helpers used by several steps: reading the data split and the corpus, computing metrics, saving JSON.
+Small helpers used by several steps: reading the data split and the corpus, computing metrics, saving JSON,
+and saving / resuming a training run after every epoch.
 """
 import json
+import os
 import random
 from pathlib import Path
 
@@ -68,3 +70,43 @@ def save_json(obj, path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(obj, indent=2, ensure_ascii=False))
+
+
+# ----------------------------------------------------------------------------- resuming an interrupted run
+# A run saves its full state after every epoch (model, optimiser, learning-rate schedule, best epoch so far and
+# every random-number generator). Started again, it continues after the last finished epoch, and with the same
+# random numbers, so the result is the same as without the interruption.
+
+def rng_state():
+    return {"python": random.getstate(), "numpy": np.random.get_state(), "torch": torch.get_rng_state(),
+            "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None}
+
+
+def set_rng_state(state):
+    random.setstate(state["python"])
+    np.random.set_state(state["numpy"])
+    torch.set_rng_state(state["torch"])
+    if state["cuda"] is not None and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(state["cuda"])
+
+
+def save_checkpoint(state, path):
+    """Written to a temporary file first, so a stop while writing never leaves a broken checkpoint."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    torch.save(state, temporary)
+    os.replace(temporary, path)
+
+
+def load_checkpoint(path, settings):
+    """The saved state, or None if there is none. Refuses a checkpoint saved with other settings."""
+    path = Path(path)
+    if not path.exists():
+        return None
+    state = torch.load(path, map_location="cpu", weights_only=False)
+    if state["settings"] != settings:
+        raise SystemExit(f"{path} was saved by a run with other settings:\n  saved: {state['settings']}\n"
+                         f"  now:   {settings}\nDelete it to start this run from the beginning.")
+    print(f"[resume] continuing after epoch {state['epoch']} (from {path})")
+    return state
