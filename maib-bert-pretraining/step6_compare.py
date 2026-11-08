@@ -118,7 +118,9 @@ def main():
     for path in sorted(Path(config.REPORTS_DIR).glob("pretrain_*.json")):
         d = json.loads(path.read_text())
         pretrain.append({"encoder": d["model"], "corpus texts": d["corpus_texts"], "corpus words": d["corpus_words"],
-                         "best epoch": d["best_epoch"],
+                         "starts from": Path(d["base_model"]).name, "best epoch": d["best_epoch"],
+                         "epochs run": d.get("epochs_run", len(d["history"])),
+                         "converged": {True: "yes", False: "NO"}.get(d.get("converged"), "?"),
                          "perplexity before": d["before"]["labelled_val"]["perplexity"],
                          "perplexity after": d["after"]["labelled_val"]["perplexity"]})
     pretrain = pd.DataFrame(pretrain)
@@ -133,6 +135,9 @@ def main():
             f"Paired bootstrap of the seed-averaged macro-F1 difference ({N_BOOT} resamples); exact McNemar test per seed.\n\n"
             + (markdown(tests) if len(tests) else "No adapted encoder with the same seeds as base yet.") + "\n\n"
             "## Stage 1: MLM perplexity on the validation reports (lower = BERT knows the language better)\n\n"
+            "converged = early stopping ended the run; NO = the loss was still falling at the last allowed epoch.\n"
+            "Perplexities of different corpora are not comparable as a measure of quality: TAPT is trained on texts\n"
+            "like the validation reports, so its perplexity is lower without the encoder being better for classification.\n\n"
             + (markdown(pretrain) if len(pretrain) else "No step-3 summary found.") + "\n")
     (out / "comparison.md").write_text(text)
     print(text)

@@ -74,9 +74,9 @@ BERT باید حدس بزند:  aground
 
 | | |
 |---|---|
-| Encoderها | `base` (BERT اصلی)، `bert-maib-external` (DAPT)، `bert-maib-task` (TAPT)، و اختیاری `bert-maib-external-task` |
+| Encoderها | `base` (BERT اصلی)، `bert-maib-task` (TAPT)، `bert-maib-external` (DAPT)، `bert-maib-external-then-task` (اول DAPT، بعد TAPT روی همان مدل) |
 | پیکربندی‌ها | `bert + ce` و `bert_bilstm_att + wce` (مدل اصلی مقاله) |
-| seedها | 1 و 2، مثل مقاله |
+| seedها | 1، 2 و 3 (seedهای 1 و 2ِ BERT اصلی همان اجراهای مقاله هستند) |
 | تقسیم داده | دقیقاً تقسیم مقاله: 4,033 / 864 / 865؛ step 1 این را چک می‌کند |
 | معیارها | Macro-F1، Recall کلاس‌های حیاتی، F1 هر کلاس حیاتی، و perplexity در مرحله‌ی ۱ |
 | آزمون آماری | McNemar برای هر seed، و بوت‌استرپ جفتی روی میانگین seedها (مثل مقاله) |
@@ -137,7 +137,7 @@ uv run python run_pipeline.py
 ```bash
 uv run python run_pipeline.py --corpora task                # فقط با دیتاست خودتان (بدون دانلود)
 uv run python run_pipeline.py --since 2010 --max-reports 100   # دانلود کمتر برای شروع
-uv run python run_pipeline.py --max-texts 20000 --mlm-epochs 3 # مرحله‌ی ۱ کوتاه‌تر روی corpus بزرگ
+uv run python run_pipeline.py --max-texts 20000 --mlm-epochs 3 # مرحله‌ی ۱ کوتاه و ناقص، فقط برای آزمایش سریع
 uv run python run_pipeline.py --skip-base                   # BERT اصلی از نتایج مقاله (پایین را ببینید)
 ```
 
@@ -166,6 +166,51 @@ uv run python run_pipeline.py --skip-base
 
 ---
 
+## ۵-الف. اجرای اصولی (کامل) — دستور اصلی
+
+**اصل:** تعداد epoch مرحله‌ی ۱ را دستی انتخاب نمی‌کنیم. آموزش آن‌قدر ادامه پیدا می‌کند که loss روی متن گزارش‌های val دیگر بهتر نشود (early stopping). بهترین epoch نگه داشته می‌شود. مرحله‌ی ۲ برای همه‌ی encoderها دقیقاً همان تنظیمات مقاله است. فقط encoder عوض می‌شود.
+
+| encoder | متن مرحله‌ی ۱ | شروع از | سقف epoch | patience | زمان تقریبی روی GTX 1650 Ti |
+|---|---|---|---|---|---|
+| `bert-maib-task` (TAPT) | train دیتاست شما (۴,۰۳۳ متن) | BERT اصلی | 50 | 3 | حدود ۲۵ دقیقه برای هر epoch |
+| `bert-maib-external` (DAPT) | **همه‌ی** متن‌های MAIB قدیمی (حدود ۶۹ هزار) | BERT اصلی | 8 | 2 | حدود ۶ ساعت برای هر epoch |
+| `bert-maib-external-then-task` | train دیتاست شما | مدل DAPT | 50 | 3 | حدود ۲۵ دقیقه برای هر epoch |
+
+- سقف epoch فقط یک حد بالاست. اگر اجرایی به سقف رسید و هنوز بهتر می‌شد، کد هشدار **NOT CONVERGED** می‌دهد. در جدول `comparison.md` هم ستون `converged` مقدار `NO` می‌گیرد. در این صورت سقف را در `config.MLM_EPOCHS` بالاتر ببرید.
+- این تنظیمات در `config.py` هستند: `MLM_EPOCHS`، `MLM_PATIENCE` و `SEEDS`.
+
+**قدم ۱، فقط یک بار: نتایج اجرای سبک قبلی را کنار بگذارید.** هیچ چیزی پاک نمی‌شود:
+```bash
+python archive_previous_run.py light          # فقط نشان می‌دهد چه چیزهایی منتقل می‌شوند
+python archive_previous_run.py light --yes    # منتقل می‌کند به archive/light/
+```
+بدون این قدم، pipeline مدل‌ها و نتیجه‌های قبلی را می‌بیند و آن‌ها را دوباره نمی‌سازد. نتایج BERT اصلی که از مقاله کپی شده‌اند، سر جایشان می‌مانند.
+
+**قدم ۲: اجرا (بدون `--skip-base`، بدون `--max-texts` و بدون `--mlm-epochs`):**
+```bash
+source .venv/bin/activate
+nohup python run_pipeline.py > run_full.log 2>&1 &
+tail -f run_full.log          # دیدن پیشرفت؛ با Ctrl+C فقط tail بسته می‌شود، آموزش ادامه دارد
+```
+
+**ترتیب اجرا:**
+1. BERT اصلی با seed 3 (seedهای 1 و 2 از مقاله کپی شده‌اند).
+2. TAPT و بعد fine-tune آن.
+3. DAPT و بعد fine-tune آن.
+4. DAPT ← TAPT و بعد fine-tune آن.
+
+بعد از هر encoder، جدول `reports/comparison.md` به‌روز می‌شود. پس نتیجه‌ی TAPT را حدود یک روز بعد از شروع می‌بینید، قبل از اینکه DAPT تمام شود.
+
+**زمان کل:** حدود ۳ تا ۴ روز. شامل ۲۰ اجرای fine-tune (هر کدام حدود ۷۵ دقیقه) و مرحله‌ی ۱ برای سه encoder است.
+
+**متوقف کردن:**
+```bash
+pkill -f run_pipeline; pkill -f step3_pretrain_mlm; pkill -f step5_run_all
+```
+**ادامه دادن:** همان دستور قدم ۲ را بزنید. اجراهای تمام‌شده رد می‌شوند و اجرای نیمه‌کاره از آخرین epoch تمام‌شده ادامه پیدا می‌کند. اگر corpus تغییری نکرده باشد، ساخت دوباره‌ی آن (step 2) هم رد می‌شود. **تنظیمات را وسط کار عوض نکنید.**
+
+---
+
 ## ۶. ساختار پوشه
 
 | فایل | کار |
@@ -181,6 +226,7 @@ uv run python run_pipeline.py --skip-base
 | `step4_finetune.py` | مرحله‌ی ۲: یک اجرای fine-tuning (کپی کد مقاله) |
 | `step5_run_all.py` | همه‌ی اجراهای مرحله‌ی ۲ |
 | `step6_compare.py` | جدول مقایسه و آزمون‌های معناداری |
+| `archive_previous_run.py` | انتقال نتایج یک اجرای قبلی به `archive/` (بدون پاک کردن) |
 | `models.py`، `losses.py`، `common.py` | مدل‌ها، تابع‌های زیان و ابزارها (از کد مقاله) |
 | `corpus_sources/` | فایل‌های داده‌ی دیگر (ورودی شما) |
 | `results/`، `reports/` | خروجی‌ها؛ commit شوند |
@@ -192,7 +238,7 @@ uv run python run_pipeline.py --skip-base
 
 - **اندازه‌ی corpus مهم است.** با چند هزار متن کوتاه، بهبود ممکن است کم باشد. Gururangan et al. بهبود بزرگ‌تر را با داده‌ی بیشتر گزارش کرده‌اند، ولی TAPT حتی با داده‌ی کم هم اغلب کمک کرده است.
 - **واژگان BERT عوض نمی‌شود.** کلمه‌ای مثل *allided* همچنان به چند تکه شکسته می‌شود. مرحله‌ی ۱ کاربرد این تکه‌ها را در متن دریایی یاد می‌دهد، نه کلمه‌ی جدید.
-- **دو seed کم است.** اگر تفاوت‌ها نزدیک به هم بود، seed سوم را به `config.SEEDS` اضافه کنید.
+- **seed:** با ۲ seed، انحراف معیار تقریباً بی‌معنی است. پیش‌فرض الان ۳ seed است. اگر تفاوت‌ها هنوز نزدیک به مرز معناداری بودند، 4 و 5 را هم به `config.SEEDS` اضافه کنید.
 - **هیچ تنظیمی را با test انتخاب نکنید.** انتخاب epoch در هر دو مرحله فقط با val انجام می‌شود.
 
 ## منابع
