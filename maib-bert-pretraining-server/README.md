@@ -12,7 +12,8 @@
 | batch مؤثر و بقیه‌ی تنظیمات | 32 | **همان** (32)، پس آموزش معادل است |
 | ماسک‌های ارزیابی و perplexity | ثابت | **عیناً همان** |
 | fine-tune (مرحله‌ی ۲) | تنظیمات مقاله، 8 × 4 | **عیناً همان**، تا با اجراهای BERT اصلی مقاله مقایسه‌پذیر باشد |
-| فایل‌های اضافه | — | `kaggle_notebook.ipynb`، `colab_notebook.ipynb`، `make_upload_zip.sh` |
+| توقف زودهنگام | هر بهبودی | فقط بهبود حداقل ۰.۰۱ در loss (حدود ۱٪ perplexity): epochهای بی‌اثر روی سرور پولی اجرا نمی‌شوند |
+| فایل‌های اضافه | — | `install_server.sh`، `kaggle_notebook.ipynb`، `colab_notebook.ipynb`، `make_upload_zip.sh` |
 
 خود آزمایش هم همان است:
 - مرحله‌ی ۱ تا همگرایی (early stopping).
@@ -104,19 +105,41 @@ bash make_upload_zip.sh            # می‌سازد: ../maib-server.zip
 
 ```bash
 # روی لپ‌تاپ: فرستادن فایل
-scp ../maib-server.zip USER@SERVER:~
+scp ../maib-server.zip root@IP:~
 
-# روی سرور
+# روی سرور: نصب و چک کامل، قبل از شروع آموزش (حدود ۱۰ دقیقه)
+ssh root@IP
 unzip maib-server.zip && cd maib-bert-pretraining-server
-nvidia-smi                                   # GPU باید دیده شود
-pip install -r requirements.txt              # یا: uv sync
-tmux new -s maib                             # جلسه‌ای که با قطع شدن SSH بسته نمی‌شود
-python run_pipeline.py 2>&1 | tee -a run_full.log
-#   خروج از tmux بدون متوقف کردن آموزش: Ctrl+B و بعد D
-#   برگشت به آن:                          tmux attach -t maib
+bash install_server.sh
+```
 
-# در پایان، روی لپ‌تاپ: گرفتن نتیجه‌ها
-scp -r USER@SERVER:~/maib-bert-pretraining-server/results USER@SERVER:~/maib-bert-pretraining-server/reports .
+`install_server.sh` این‌ها را چک می‌کند تا ساعت‌های پولی صرف خطایابی نشود:
+- درایور NVIDIA نصب است یا نه.
+- **PyTorch مناسبِ همان درایور** را نصب می‌کند. PyTorch پیش‌فرض pip به درایور ۵۸۰ یا بالاتر نیاز دارد. اگر درایور سرور قدیمی‌تر باشد، نسخه‌ی سازگار از سایت PyTorch نصب می‌شود.
+- GPU واقعاً با float16 محاسبه می‌کند یا نه.
+- BERT از Hugging Face دانلود می‌شود یا نه.
+- فایل‌های داده سر جایشان هستند یا نه.
+
+همه‌ی خط‌ها باید `[ok]` باشند.
+
+**اجرا (داخل tmux، تا با قطع شدن SSH متوقف نشود):**
+```bash
+tmux new -s maib
+source .venv/bin/activate
+
+# الف) اجرای کامل (بدون محدودیت بودجه)
+python run_pipeline.py 2>&1 | tee -a run_full.log
+
+# ب) با بودجه‌ی محدود: DAPT حداکثر ۳ epoch، بدون encoder سوم، و توقف خودکار بعد از ۸.۵ ساعت
+timeout -s INT 8.5h python run_pipeline.py --corpora external task --external-epochs 3 2>&1 | tee -a run_full.log
+```
+- خروج از tmux بدون متوقف کردن آموزش: `Ctrl+B` و بعد `D`.
+- برگشت به tmux: `tmux attach -t maib`.
+- دیدن سرعت: `grep "\[epoch" run_full.log | tail`.
+
+**در پایان، روی لپ‌تاپ همه‌چیز را دانلود کنید.** مدل‌ها و checkpointهای نیمه‌کاره را هم بگیرید تا اگر کاری مانده بود روی لپ‌تاپ ادامه پیدا کند:
+```bash
+rsync -av --exclude .venv --exclude corpus root@IP:~/maib-bert-pretraining-server/ server_run/
 ```
 
 **مهم در سرور اجاره‌ای:**

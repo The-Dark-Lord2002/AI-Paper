@@ -68,6 +68,10 @@ MLM_WARMUP_FRACTION = 0.06
 #   external+task        both corpora mixed in one run (optional)
 MLM_EPOCHS = {"external": 8, "task": 50, "external-then-task": 50, "external+task": 8}
 MLM_PATIENCE = {"external": 2, "task": 3, "external-then-task": 3, "external+task": 2}
+# SERVER VERSION (saves paid GPU hours): an epoch only counts as better if it lowers the validation MLM loss by at
+# least this much. 0.01 in loss = about 1% in perplexity; smaller gains are within noise and would only keep a
+# paid server running for epochs that change nothing.
+MLM_MIN_DELTA = 0.01
 MLM_SEED = 42
 
 # ---------------------------------------------------------------- fine-tuning (stage 2, step 4)

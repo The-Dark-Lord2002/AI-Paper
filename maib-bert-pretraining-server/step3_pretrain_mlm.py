@@ -248,7 +248,7 @@ def main():
         minutes = minutes_before + (time.time() - start) / 60
         print(f"[epoch {epoch}] train loss={running / len(loader):.4f}  {epoch_scores}  "
               f"({minutes:.1f} min; at most {minutes / epoch * (args.epochs - epoch):.0f} min left)")
-        if val_loss < best_loss:
+        if val_loss < best_loss - config.MLM_MIN_DELTA:     # a real improvement (see config.MLM_MIN_DELTA)
             best_loss, best_epoch = val_loss, epoch
             best_weights = copy.deepcopy({k: v.cpu() for k, v in model.state_dict().items()})
         stop = epoch - best_epoch >= args.patience      # early stopping
@@ -289,9 +289,12 @@ def main():
     save_json(summary, Path(config.REPORTS_DIR) / f"pretrain_{args.corpus.replace('+', '-')}.json")
     resume_path.unlink(missing_ok=True)                  # finished: the checkpoint is no longer needed
     print(f"[after] {after}\nSaved {out_dir}/ (best epoch {best_epoch} of {len(history)} run)")
-    if not converged:
-        print(f"[warning] NOT CONVERGED: the validation loss was still falling at the last epoch ({args.epochs}). "
-              f"Raise the ceiling (--epochs, or config.MLM_EPOCHS) and run again for a complete pre-training.")
+    if not converged and best_epoch == len(history):
+        print(f"[warning] NOT CONVERGED: the validation loss was still falling at the last allowed epoch "
+              f"({args.epochs}). Raise the ceiling (--epochs, or config.MLM_EPOCHS) for a complete pre-training.")
+    elif not converged:
+        print(f"[note] the ceiling of {args.epochs} epochs ended the run {len(history) - best_epoch} epoch(s) after "
+              f"the best one, before the patience of {args.patience} ran out; probably close to convergence.")
 
 
 if __name__ == "__main__":

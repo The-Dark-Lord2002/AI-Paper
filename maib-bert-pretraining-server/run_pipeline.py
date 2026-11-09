@@ -42,6 +42,8 @@ parser.add_argument("--max-texts", type=int, help="step 3: at most this many tex
                                                   "(default: all of them)")
 parser.add_argument("--mlm-epochs", type=int, help="step 3: maximum epochs for every corpus "
                                                    "(default: config.MLM_EPOCHS, with early stopping)")
+parser.add_argument("--external-epochs", type=int, help="step 3: maximum epochs for the 'external' corpus only "
+                                                        "(DAPT, the expensive one); e.g. 3 on a limited budget")
 args = parser.parse_args()
 
 START = time.time()
@@ -125,7 +127,8 @@ def main():
             print(f"\n[skip] stage 1 on '{corpus}': {model_dir(corpus)} already exists "
                   f"(move it away to train it again, see archive_previous_run.py)")
         else:
-            extra = (["--epochs", args.mlm_epochs] if args.mlm_epochs else []) + \
+            ceiling = args.external_epochs if corpus == "external" and args.external_epochs else args.mlm_epochs
+            extra = (["--epochs", ceiling] if ceiling else []) + \
                     (["--max-texts", args.max_texts] if args.max_texts and "external" in corpus.split("+") else [])
             run("step3_pretrain_mlm.py", "--corpus", corpus, *extra)
         run("step5_run_all.py", "--encoders", model_dir(corpus), "--skip-base")
