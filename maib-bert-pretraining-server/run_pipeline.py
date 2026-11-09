@@ -19,6 +19,8 @@ the next one is still training.
   python run_pipeline.py --corpora task          # only TAPT: no other dataset needed
   python run_pipeline.py --skip-base             # do not train the original BERT (copied from the paper)
   python run_pipeline.py --max-texts 20000 --mlm-epochs 3      # a shorter, NOT converged stage 1 (a quick test)
+  python run_pipeline.py --corpora task external --workers 4 --threads 20
+        # CPU server with 80 cores, models/ already trained on a GPU: only the fine-tunings, 4 at a time
 """
 import argparse
 import json
@@ -42,6 +44,9 @@ parser.add_argument("--max-texts", type=int, help="step 3: at most this many tex
                                                   "(default: all of them)")
 parser.add_argument("--mlm-epochs", type=int, help="step 3: maximum epochs for every corpus "
                                                    "(default: config.MLM_EPOCHS, with early stopping)")
+parser.add_argument("--workers", type=int, default=1, help="stage 2: fine-tunings at the same time (CPU server: "
+                                                            "e.g. 4 on 80 cores; default 1, one after the other)")
+parser.add_argument("--threads", type=int, help="stage 2 with --workers: CPU cores for each fine-tuning")
 parser.add_argument("--external-epochs", type=int, help="step 3: maximum epochs for the 'external' corpus only "
                                                         "(DAPT, the expensive one); e.g. 3 on a limited budget")
 args = parser.parse_args()
@@ -116,23 +121,35 @@ def main():
         raise SystemExit("No text of the other dataset is left after step 2. Check corpus_sources/ and "
                          "reports/corpus_summary.json, or run with --corpora task.")
 
-    # ------------------------------------------------------------------ original BERT: stage 2 only
-    if not args.skip_base:
-        run("step5_run_all.py", "--encoders", config.BASE_MODEL)
-        run("step6_compare.py")
-
-    # ------------------------------------------------------------------ every adapted BERT: stage 1, then stage 2
-    for corpus in corpora:
+    def stage1(corpus):
         if (model_dir(corpus) / "config.json").exists():
             print(f"\n[skip] stage 1 on '{corpus}': {model_dir(corpus)} already exists "
                   f"(move it away to train it again, see archive_previous_run.py)")
-        else:
-            ceiling = args.external_epochs if corpus == "external" and args.external_epochs else args.mlm_epochs
-            extra = (["--epochs", ceiling] if ceiling else []) + \
-                    (["--max-texts", args.max_texts] if args.max_texts and "external" in corpus.split("+") else [])
-            run("step3_pretrain_mlm.py", "--corpus", corpus, *extra)
-        run("step5_run_all.py", "--encoders", model_dir(corpus), "--skip-base")
-        run("step6_compare.py")                     # the table grows after every finished encoder
+            return
+        ceiling = args.external_epochs if corpus == "external" and args.external_epochs else args.mlm_epochs
+        extra = (["--epochs", ceiling] if ceiling else []) + \
+                (["--max-texts", args.max_texts] if args.max_texts and "external" in corpus.split("+") else [])
+        run("step3_pretrain_mlm.py", "--corpus", corpus, *extra)
+
+    parallel = ["--workers", args.workers] + (["--threads", args.threads] if args.threads else [])
+
+    if args.workers > 1:
+        # ------------------------------------------------------------ CPU server: all stage 1 first, then
+        # every fine-tuning of every encoder in ONE pool, so all workers stay busy until the end
+        for corpus in corpora:
+            stage1(corpus)
+        run("step5_run_all.py", "--encoders", *encoders, *(["--skip-base"] if args.skip_base else []), *parallel)
+        run("step6_compare.py")
+    else:
+        # ------------------------------------------------------------ GPU: the original BERT, then for each
+        # adapted BERT its stage 1 and right after it its stage 2; the table grows after every encoder
+        if not args.skip_base:
+            run("step5_run_all.py", "--encoders", config.BASE_MODEL)
+            run("step6_compare.py")
+        for corpus in corpora:
+            stage1(corpus)
+            run("step5_run_all.py", "--encoders", model_dir(corpus), "--skip-base")
+            run("step6_compare.py")
 
     print(f"\nDone in {(time.time() - START) / 3600:.1f} h. Results: {config.REPORTS_DIR}/comparison.md")
 

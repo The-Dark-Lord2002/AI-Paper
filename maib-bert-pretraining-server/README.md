@@ -148,6 +148,52 @@ rsync -av --exclude .venv --exclude corpus root@IP:~/maib-bert-pretraining-serve
 
 ---
 
+## قدم ۲-د: تقسیم کار — پیش‌آموزش روی سرور GPU، fine-tune روی سرور CPU دانشگاه
+
+مرحله‌ی ۱ (MLM) به GPU نیاز دارد. مرحله‌ی ۲ (۲۰ اجرای fine-tune) روی یک CPU پرهسته هم شدنی است، مثلاً سرور دانشگاه با ۸۰ هسته. پس:
+
+**الف) روی سرور GPU (اجاره‌ای، حدود ۵ تا ۶ ساعت): فقط پیش‌آموزش**
+```bash
+bash install_server.sh
+tmux new -s maib && source .venv/bin/activate
+python step3_pretrain_mlm.py --corpus task 2>&1 | tee -a mlm.log                  # TAPT، ارزان، اول
+python step3_pretrain_mlm.py --corpus external --epochs 3 2>&1 | tee -a mlm.log    # DAPT
+```
+بعد `models/` و `reports/` را دانلود کنید و **سرور را حذف کنید**:
+```bash
+rsync -av root@IP:~/maib-bert-pretraining-server/models/  models/
+rsync -av root@IP:~/maib-bert-pretraining-server/reports/ reports/
+```
+
+**ب) روی سرور CPU دانشگاه: fine-tuneها، چند اجرا هم‌زمان**
+
+پوشه را با `models/` و `reports/` به سرور ببرید و نصب کنید. نسخه‌ی CPU پایتورچ حجم کمتری دارد:
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements.txt
+```
+
+**اول یک تست ۱۰ دقیقه‌ای سرعت:**
+```bash
+OMP_NUM_THREADS=20 python step4_finetune.py --model bert_bilstm_att --loss wce --seed 3
+```
+عدد `s/it` روی نوار پیشرفت را بخوانید و با Ctrl+C متوقف کنید. **زمان هر اجرا ≈ s/it × ۵۰۵ × ۵ ثانیه.**
+
+**اجرای همه‌ی fine-tuneها:**
+```bash
+tmux new -s maib && source .venv/bin/activate
+python run_pipeline.py --corpora task external --workers 4 --threads 20 2>&1 | tee -a run_full.log
+```
+- `--workers 4 --threads 20` یعنی ۴ اجرا هم‌زمان، هر کدام با ۲۰ هسته (روی ۸۰ هسته). یک پروسه‌ی PyTorch نمی‌تواند ۸۰ هسته را خوب پر کند، ولی چند پروسه‌ی هم‌زمان می‌توانند.
+- مرحله‌ی ۱ رد می‌شود، چون مدل‌ها در `models/` هستند. فقط fine-tuneها اجرا می‌شوند: BERT اصلی با seed 3، TAPT و DAPT.
+- لاگ هر اجرا در `logs/<run>.log` است. وقتی هر اجرا تمام شود، نتیجه‌ی test آن در لاگ اصلی چاپ می‌شود.
+- **هر اجرا دقیقاً همان نتیجه‌ای را می‌دهد که تنها اجرا می‌شد** (تست شده).
+- **حافظه:** هر اجرا حدود ۴ تا ۶ گیگ RAM می‌خواهد. با ۴ اجرای هم‌زمان، حدود ۲۴ گیگ.
+- **متوقف کردن:** Ctrl+C. همه‌ی اجراها متوقف می‌شوند و دفعه‌ی بعد از آخرین epoch تمام‌شده‌شان ادامه پیدا می‌کنند. اگر کسی سرور را لازم داشت، کمتر بگیرید، مثلاً `--workers 2 --threads 20`.
+
+---
+
 ## نکته‌های مهم
 
 - **تنظیمات `config.py` را وسط کار عوض نکنید.** checkpoint فقط با همان تنظیمات ادامه پیدا می‌کند.
