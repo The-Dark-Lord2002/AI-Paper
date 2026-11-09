@@ -211,6 +211,10 @@ pkill -f run_pipeline; pkill -f step3_pretrain_mlm; pkill -f step5_run_all
 
 ---
 
+**اجرا روی GPU رایگان Kaggle یا Colab:** راهنمای قدم‌به‌قدم در [`cloud/README.md`](cloud/README.md) است.
+
+---
+
 ## ۶. ساختار پوشه
 
 | فایل | کار |
@@ -226,6 +230,7 @@ pkill -f run_pipeline; pkill -f step3_pretrain_mlm; pkill -f step5_run_all
 | `step4_finetune.py` | مرحله‌ی ۲: یک اجرای fine-tuning (کپی کد مقاله) |
 | `step5_run_all.py` | همه‌ی اجراهای مرحله‌ی ۲ |
 | `step6_compare.py` | جدول مقایسه و آزمون‌های معناداری |
+| `cloud/` | notebookهای آماده برای Kaggle و Colab، اسکریپت ساخت zip برای آپلود، و راهنما |
 | `archive_previous_run.py` | انتقال نتایج یک اجرای قبلی به `archive/` (بدون پاک کردن) |
 | `models.py`، `losses.py`، `common.py` | مدل‌ها، تابع‌های زیان و ابزارها (از کد مقاله) |
 | `corpus_sources/` | فایل‌های داده‌ی دیگر (ورودی شما) |
