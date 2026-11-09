@@ -281,8 +281,7 @@ def main():
         "settings": {"mlm_probability": config.MLM_PROBABILITY, "max_tokens": config.MLM_MAX_TOKENS,
                      "batch_size": args.batch_size, "grad_accum": grad_accum, "lr": args.lr,
                      "epochs": args.epochs, "patience": args.patience, "max_texts": args.max_texts,
-                     "device": str(device),
-                     "gpu": torch.cuda.get_device_name(0) if device.type == "cuda" else None},
+                     "device": str(device)},
         "best_epoch": best_epoch, "epochs_run": len(history), "converged": converged, "train_minutes": round(minutes_before + (time.time() - start) / 60, 1),
         "before": before, "after": after, "history": history,
     }

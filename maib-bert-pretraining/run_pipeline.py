@@ -63,24 +63,17 @@ def model_dir(corpus):
     return Path(config.MODELS_DIR) / ("bert-maib-" + corpus.replace("+", "-"))
 
 
-def corpus_built(needs_external):
-    """True if step 2 has already written the corpus files this run needs."""
-    outputs = [Path(config.REPORTS_DIR) / "corpus_summary.json", Path(config.CORPUS_DIR) / "task_train.txt"]
+def corpus_up_to_date(needs_external):
+    """Step 2 takes ~20 min on the full download; skip it if its output is newer than every input file."""
+    summary = Path(config.REPORTS_DIR) / "corpus_summary.json"
+    outputs = [Path(config.CORPUS_DIR) / "task_train.txt"]
     if needs_external:
         outputs += [Path(config.CORPUS_DIR) / "external_train.txt", Path(config.CORPUS_DIR) / "external_val.txt"]
-    return all(p.exists() for p in outputs)
-
-
-def corpus_up_to_date(needs_external):
-    """
-    Step 2 takes ~20 min on the full download; it is skipped if the corpus exists and no source file is newer.
-    This also works on Kaggle / Colab, where only the cleaned corpus/ is uploaded and corpus_sources/ is empty.
-    After changing the corpus settings in config.py, rebuild it with --rebuild-corpus.
-    """
-    if not corpus_built(needs_external):
+    if not summary.exists() or not all(p.exists() for p in outputs):
         return False
-    built = (Path(config.REPORTS_DIR) / "corpus_summary.json").stat().st_mtime
-    return all(p.stat().st_mtime < built for p in source_files())
+    built = summary.stat().st_mtime
+    inputs = source_files() + [Path(config.DATA_DIR) / "train.csv", Path("config.py"), Path("step2_build_corpus.py")]
+    return all(p.stat().st_mtime < built for p in inputs if p.exists())
 
 
 def main():
@@ -97,8 +90,7 @@ def main():
           f"~75 min on a GTX 1650 Ti (finished runs are skipped). Seeds {config.SEEDS}.")
 
     # ------------------------------------------------------------------ data
-    # step 0 (download, ~1.5 GB) only if there is neither a download nor an already built corpus
-    if needs_external and (args.download or not (source_files() or corpus_built(needs_external))):
+    if needs_external and (args.download or not source_files()):
         extra = ["--since", args.since] + (["--max-reports", args.max_reports] if args.max_reports else [])
         run("step0_download_sources.py", *extra)
     if not (Path(config.DATA_DIR) / "test.csv").exists():
