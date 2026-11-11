@@ -1,0 +1,9 @@
+# large or rebuilt by the scripts
+models/
+corpus/
+data/
+__pycache__/
+.venv/
+*.resume.pt
+*.resume.pt.tmp
+archive/*/models/

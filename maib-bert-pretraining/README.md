@@ -74,9 +74,9 @@ BERT باید حدس بزند:  aground
 
 | | |
 |---|---|
-| Encoderها | `base` (BERT اصلی)، `bert-maib-external` (DAPT)، `bert-maib-task` (TAPT)، و اختیاری `bert-maib-external-task` |
+| Encoderها | `base` (BERT اصلی)، `bert-maib-task` (TAPT)، `bert-maib-external` (DAPT)، `bert-maib-external-then-task` (اول DAPT، بعد TAPT روی همان مدل) |
 | پیکربندی‌ها | `bert + ce` و `bert_bilstm_att + wce` (مدل اصلی مقاله) |
-| seedها | 1 و 2، مثل مقاله |
+| seedها | 1، 2 و 3 (seedهای 1 و 2ِ BERT اصلی همان اجراهای مقاله هستند) |
 | تقسیم داده | دقیقاً تقسیم مقاله: 4,033 / 864 / 865؛ step 1 این را چک می‌کند |
 | معیارها | Macro-F1، Recall کلاس‌های حیاتی، F1 هر کلاس حیاتی، و perplexity در مرحله‌ی ۱ |
 | آزمون آماری | McNemar برای هر seed، و بوت‌استرپ جفتی روی میانگین seedها (مثل مقاله) |
@@ -85,30 +85,70 @@ BERT باید حدس بزند:  aground
 
 ---
 
-## ۵. اجرا
+## ۵. اجرا (با uv)
 
-با **uv** (پیشنهادی):
+**یک بار، نصب:**
 ```bash
 cd maib-bert-pretraining
-uv sync                                # یک بار: محیط و همه‌ی کتابخانه‌ها، از جمله PyTorch با CUDA
-
-uv run python step0_download_sources.py --dry-run   # فقط فهرست فایل‌ها، بدون دانلود
-uv run python step0_download_sources.py             # دانلود گزارش‌ها و Safety Digestهای تا 2020
-# (اختیاری) occurrences.csv را از MAIB Data Portal دستی دانلود کنید و در corpus_sources/ بگذارید
-uv run python step1_prepare_data.py    # باید [ok] چاپ کند: همان تقسیم مقاله
-uv run python step2_build_corpus.py    # خروجی: corpus/ و reports/corpus_summary.json
-uv run python step3_pretrain_mlm.py --corpus external     # مرحله‌ی ۱ (خودنظارتی): DAPT
-uv run python step3_pretrain_mlm.py --corpus task         # مرحله‌ی ۱ (خودنظارتی): TAPT
-uv run python step5_run_all.py         # مرحله‌ی ۲ (با ناظر)
-uv run python step6_compare.py         # جدول و آزمون‌ها -> reports/comparison.md
+uv sync          # محیط .venv و همه‌ی کتابخانه‌ها، از جمله PyTorch با CUDA (حدود ۲ تا ۳ گیگابایت دانلود)
+uv run python -c "import torch; print(torch.cuda.is_available())"     # باید True چاپ کند
 ```
 
-بدون uv هم می‌شود: `pip install -r requirements.txt` و بعد همان دستورها بدون `uv run`.
-
-برای یک اجرای تکی:
+**اگر `uv sync` با خطای timeout متوقف شد** (اینترنت کند یا محدود):
 ```bash
-python step4_finetune.py --model bert_bilstm_att --loss wce --seed 1 --encoder models/bert-maib-external
+UV_HTTP_TIMEOUT=300 uv sync                       # ۱) همان کار، با صبر بیشتر
+uv sync --default-index <آدرس-میرور>/simple        # ۲) از یک میرور PyPI داخلی
 ```
+آدرس دقیق میرور را از صفحه‌ی میرورهای Runflare یا Liara بردارید (فهرست میرورهای ایران: https://github.com/MiravaOrg/Mirava).
+برای اینکه همیشه از میرور استفاده شود، در فایل `~/.config/uv/uv.toml` بنویسید:
+```toml
+[[index]]
+url = "<آدرس-میرور>/simple"
+default = true
+```
+روی لینوکس PyTorch از همان PyPI (یا میرور) نصب می‌شود و CUDA را دارد؛ روی ویندوز از سرور PyTorch.
+
+**یا با Miniconda** (همه‌ی بسته‌ها از conda-forge، بدون PyPI؛ conda خودش نسخه‌ی CUDA سازگار با درایور را انتخاب می‌کند):
+```bash
+conda config --set remote_read_timeout_secs 600   # یک بار: صبر بیشتر روی اینترنت کند
+conda config --set remote_max_retries 10
+conda env create -f environment.yml               # یک بار، حدود ۳ گیگابایت
+conda activate maib-bert-pretraining              # در هر ترمینال جدید
+python -c "import torch; print(torch.cuda.is_available())"   # باید True باشد
+```
+با conda همه‌ی دستورهای پایین را **بدون `uv run`** اجرا کنید، مثلاً `python run_pipeline.py`.
+
+**کل آزمایش با یک دستور:**
+```bash
+uv run python run_pipeline.py
+```
+این دستور به ترتیب این کارها را انجام می‌دهد. **اگر وسط کار قطع شد** (قطع برق، Ctrl+C، خواب لپ‌تاپ)، همان دستور را دوباره بزنید: اجراهای تمام‌شده رد می‌شوند و اجرای نیمه‌کاره از **آخرین epoch تمام‌شده** ادامه پیدا می‌کند، با همان نتیجه‌ای که بدون قطع شدن می‌گرفت. وضعیت هر اجرا بعد از هر epoch در یک فایل `*.resume.pt` (حدود ۲ گیگابایت، در `models/` یا `results/`) ذخیره و در پایان اجرا پاک می‌شود؛ پس حدود ۲ گیگابایت جای خالی لازم است. اگر تنظیمات را عوض کنید، کد ادامه نمی‌دهد و می‌گوید فایل را پاک کنید.
+
+| ترتیب | اسکریپت | کار |
+|---|---|---|
+| ۱ | `step0` | دانلود گزارش‌ها و Safety Digestهای MAIB تا 2020 (فقط اگر `corpus_sources/` خالی باشد) |
+| ۲ | `step1` | دیتاست برچسب‌دار شما با تقسیم مقاله؛ اگر test با مقاله یکی نباشد، **متوقف می‌شود** |
+| ۳ | `step2` | ساخت corpus: تمیز کردن PDFها (سرصفحه، شماره‌ی صفحه، فهرست، آدرس وب) و حذف هر متنی که در دیتاست شما هست |
+| ۴ | `step3` | مرحله‌ی ۱، خودنظارتی (ماسک کردن): یک بار روی train شما (TAPT) و یک بار روی دیتاست دیگر (DAPT) |
+| ۵ | `step5` | مرحله‌ی ۲، با ناظر: fine-tuning روی train شما و تست روی test شما، برای BERT اصلی و هر دو BERT دریایی |
+| ۶ | `step6` | جدول مقایسه و آزمون‌های معناداری → `reports/comparison.md` |
+
+**گزینه‌ها:**
+```bash
+uv run python run_pipeline.py --corpora task                # فقط با دیتاست خودتان (بدون دانلود)
+uv run python run_pipeline.py --since 2010 --max-reports 100   # دانلود کمتر برای شروع
+uv run python run_pipeline.py --max-texts 20000 --mlm-epochs 3 # مرحله‌ی ۱ کوتاه و ناقص، فقط برای آزمایش سریع
+uv run python run_pipeline.py --skip-base                   # BERT اصلی از نتایج مقاله (پایین را ببینید)
+```
+
+**اجرای تک‌تک مراحل** هم ممکن است، مثلاً:
+```bash
+uv run python step0_download_sources.py --dry-run           # فقط فهرست فایل‌ها، بدون دانلود
+uv run python step3_pretrain_mlm.py --corpus task
+uv run python step4_finetune.py --model bert_bilstm_att --loss wce --seed 1 --encoder models/bert-maib-external
+```
+
+بدون uv: `pip install -r requirements.txt` و بعد همان دستورها بدون `uv run`.
 
 **زمان تقریبی روی GTX 1650 Ti (4 GB):**
 - step 3: حدود ۴ دقیقه برای هر 1,000 متن در هر epoch. مثلاً 5,000 متن × 10 epoch حدود ۳ ساعت، ولی توقف زودهنگام معمولاً زودتر تمامش می‌کند.
@@ -120,9 +160,54 @@ python step4_finetune.py --model bert_bilstm_att --loss wce --seed 1 --encoder m
 
 این چهار فایل را در `results/` همین پوشه کپی کنید و بعد این را اجرا کنید:
 ```bash
-python step5_run_all.py --skip-base
+uv run python run_pipeline.py --skip-base
 ```
 اسکریپت `step6_compare.py` فایل‌های بدون فیلد encoder را «base» حساب می‌کند. اگر فایلی روی test دیگری ساخته شده باشد، خطا می‌دهد.
+
+---
+
+## ۵-الف. اجرای اصولی (کامل) — دستور اصلی
+
+**اصل:** تعداد epoch مرحله‌ی ۱ را دستی انتخاب نمی‌کنیم. آموزش آن‌قدر ادامه پیدا می‌کند که loss روی متن گزارش‌های val دیگر بهتر نشود (early stopping). بهترین epoch نگه داشته می‌شود. مرحله‌ی ۲ برای همه‌ی encoderها دقیقاً همان تنظیمات مقاله است. فقط encoder عوض می‌شود.
+
+| encoder | متن مرحله‌ی ۱ | شروع از | سقف epoch | patience | زمان تقریبی روی GTX 1650 Ti |
+|---|---|---|---|---|---|
+| `bert-maib-task` (TAPT) | train دیتاست شما (۴,۰۳۳ متن) | BERT اصلی | 50 | 3 | حدود ۲۵ دقیقه برای هر epoch |
+| `bert-maib-external` (DAPT) | **همه‌ی** متن‌های MAIB قدیمی (حدود ۶۹ هزار) | BERT اصلی | 8 | 2 | حدود ۶ ساعت برای هر epoch |
+| `bert-maib-external-then-task` | train دیتاست شما | مدل DAPT | 50 | 3 | حدود ۲۵ دقیقه برای هر epoch |
+
+- سقف epoch فقط یک حد بالاست. اگر اجرایی به سقف رسید و هنوز بهتر می‌شد، کد هشدار **NOT CONVERGED** می‌دهد. در جدول `comparison.md` هم ستون `converged` مقدار `NO` می‌گیرد. در این صورت سقف را در `config.MLM_EPOCHS` بالاتر ببرید.
+- این تنظیمات در `config.py` هستند: `MLM_EPOCHS`، `MLM_PATIENCE` و `SEEDS`.
+
+**قدم ۱، فقط یک بار: نتایج اجرای سبک قبلی را کنار بگذارید.** هیچ چیزی پاک نمی‌شود:
+```bash
+python archive_previous_run.py light          # فقط نشان می‌دهد چه چیزهایی منتقل می‌شوند
+python archive_previous_run.py light --yes    # منتقل می‌کند به archive/light/
+```
+بدون این قدم، pipeline مدل‌ها و نتیجه‌های قبلی را می‌بیند و آن‌ها را دوباره نمی‌سازد. نتایج BERT اصلی که از مقاله کپی شده‌اند، سر جایشان می‌مانند.
+
+**قدم ۲: اجرا (بدون `--skip-base`، بدون `--max-texts` و بدون `--mlm-epochs`):**
+```bash
+source .venv/bin/activate
+nohup python run_pipeline.py > run_full.log 2>&1 &
+tail -f run_full.log          # دیدن پیشرفت؛ با Ctrl+C فقط tail بسته می‌شود، آموزش ادامه دارد
+```
+
+**ترتیب اجرا:**
+1. BERT اصلی با seed 3 (seedهای 1 و 2 از مقاله کپی شده‌اند).
+2. TAPT و بعد fine-tune آن.
+3. DAPT و بعد fine-tune آن.
+4. DAPT ← TAPT و بعد fine-tune آن.
+
+بعد از هر encoder، جدول `reports/comparison.md` به‌روز می‌شود. پس نتیجه‌ی TAPT را حدود یک روز بعد از شروع می‌بینید، قبل از اینکه DAPT تمام شود.
+
+**زمان کل:** حدود ۳ تا ۴ روز. شامل ۲۰ اجرای fine-tune (هر کدام حدود ۷۵ دقیقه) و مرحله‌ی ۱ برای سه encoder است.
+
+**متوقف کردن:**
+```bash
+pkill -f run_pipeline; pkill -f step3_pretrain_mlm; pkill -f step5_run_all
+```
+**ادامه دادن:** همان دستور قدم ۲ را بزنید. اجراهای تمام‌شده رد می‌شوند و اجرای نیمه‌کاره از آخرین epoch تمام‌شده ادامه پیدا می‌کند. اگر corpus تغییری نکرده باشد، ساخت دوباره‌ی آن (step 2) هم رد می‌شود. **تنظیمات را وسط کار عوض نکنید.**
 
 ---
 
@@ -131,14 +216,17 @@ python step5_run_all.py --skip-base
 | فایل | کار |
 |---|---|
 | `config.py` | همه‌ی تنظیمات |
+| `run_pipeline.py` | **کل آزمایش با یک دستور**، به ترتیب و قابل ادامه بعد از قطع شدن |
 | `step0_download_sources.py` | دانلود خودکار گزارش‌ها و Safety Digestهای MAIB تا 2020 از gov.uk |
 | `pyproject.toml` | تعریف محیط برای uv |
+| `environment.yml` | تعریف محیط برای conda (Miniconda) |
 | `step1_prepare_data.py` | دیتاست برچسب‌دار با تقسیم مقاله، و چک یکسان بودن test |
 | `step2_build_corpus.py` | ساخت corpus بدون برچسب و حذف هم‌پوشانی با دیتاست برچسب‌دار |
 | `step3_pretrain_mlm.py` | مرحله‌ی ۱: Masked Language Modeling |
 | `step4_finetune.py` | مرحله‌ی ۲: یک اجرای fine-tuning (کپی کد مقاله) |
 | `step5_run_all.py` | همه‌ی اجراهای مرحله‌ی ۲ |
 | `step6_compare.py` | جدول مقایسه و آزمون‌های معناداری |
+| `archive_previous_run.py` | انتقال نتایج یک اجرای قبلی به `archive/` (بدون پاک کردن) |
 | `models.py`، `losses.py`، `common.py` | مدل‌ها، تابع‌های زیان و ابزارها (از کد مقاله) |
 | `corpus_sources/` | فایل‌های داده‌ی دیگر (ورودی شما) |
 | `results/`، `reports/` | خروجی‌ها؛ commit شوند |
@@ -150,7 +238,7 @@ python step5_run_all.py --skip-base
 
 - **اندازه‌ی corpus مهم است.** با چند هزار متن کوتاه، بهبود ممکن است کم باشد. Gururangan et al. بهبود بزرگ‌تر را با داده‌ی بیشتر گزارش کرده‌اند، ولی TAPT حتی با داده‌ی کم هم اغلب کمک کرده است.
 - **واژگان BERT عوض نمی‌شود.** کلمه‌ای مثل *allided* همچنان به چند تکه شکسته می‌شود. مرحله‌ی ۱ کاربرد این تکه‌ها را در متن دریایی یاد می‌دهد، نه کلمه‌ی جدید.
-- **دو seed کم است.** اگر تفاوت‌ها نزدیک به هم بود، seed سوم را به `config.SEEDS` اضافه کنید.
+- **seed:** با ۲ seed، انحراف معیار تقریباً بی‌معنی است. پیش‌فرض الان ۳ seed است. اگر تفاوت‌ها هنوز نزدیک به مرز معناداری بودند، 4 و 5 را هم به `config.SEEDS` اضافه کنید.
 - **هیچ تنظیمی را با test انتخاب نکنید.** انتخاب epoch در هر دو مرحله فقط با val انجام می‌شود.
 
 ## منابع

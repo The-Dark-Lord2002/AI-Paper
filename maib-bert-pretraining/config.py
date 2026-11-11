@@ -11,6 +11,7 @@ The experiment has two stages:
 # ---------------------------------------------------------------- labelled dataset (stage 2)
 # Identical to the paper (maib-thesis/config.py), so the results of both projects can be compared.
 DATASET = "baker-street/maib-incident-reports-5K"   # Hugging Face dataset id
+DATASET_FILE = "maib-incident-reports-dataset.jsonl"  # its one data file
 SPLIT_SEED = 42                # the train/val/test split is made ONCE with this seed
 MIN_REPORTS_PER_CLASS = 20     # classes with fewer reports are dropped
 
@@ -53,8 +54,17 @@ MLM_EFFECTIVE_BATCH = 32       # 32 // 8 = 4 accumulation steps
 MLM_LR = 5e-5
 MLM_WEIGHT_DECAY = 0.01
 MLM_WARMUP_FRACTION = 0.06
-MLM_EPOCHS = 10                # maximum passes over the corpus
-MLM_PATIENCE = 2               # stop if the validation MLM loss has not improved for this many epochs
+# How long stage 1 runs. The number of epochs is NOT chosen by hand: training continues until the MLM loss on the
+# validation reports has not improved for MLM_PATIENCE epochs (early stopping), and the best epoch is kept.
+# MLM_EPOCHS is only a ceiling, set high enough that early stopping, not the ceiling, ends the run.
+# If a run still ends at the ceiling, step 3 says so ("not converged") and the ceiling should be raised.
+#   external            ~69,000 texts: one epoch is long (~6 h on a GTX 1650 Ti) and BERT sees a lot per epoch,
+#                       so a few epochs are enough and a patience of 2 avoids wasting ~12 h after the best epoch
+#   task                 ~4,000 texts: one epoch is short (~25 min), so many passes are needed and affordable
+#   external-then-task   DAPT first, then TAPT starting from the DAPT model (the best order, Gururangan et al.)
+#   external+task        both corpora mixed in one run (optional)
+MLM_EPOCHS = {"external": 8, "task": 50, "external-then-task": 50, "external+task": 8}
+MLM_PATIENCE = {"external": 2, "task": 3, "external-then-task": 3, "external+task": 2}
 MLM_SEED = 42
 
 # ---------------------------------------------------------------- fine-tuning (stage 2, step 4)
@@ -78,7 +88,9 @@ WARMUP_FRACTION = 0.1
 FOCAL_GAMMA = 2.0
 CB_BETA = 0.999
 
-SEEDS = [1, 2]
+# 3 seeds: with 2, the standard deviation is a guess and the significance tests have little power.
+# Seeds 1 and 2 of the original BERT are the paper's runs; seed 3 is trained here.
+SEEDS = [1, 2, 3]
 
 # Configurations fine-tuned with every encoder (step 5): plain BERT and the paper's main model.
 FINETUNE_CONFIGS = [

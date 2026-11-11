@@ -69,7 +69,7 @@
 
 ## اجرا
 
-با **uv** (پیشنهادی): یک بار `uv sync` (محیط و کتابخانه‌ها، از جمله PyTorch با CUDA)، بعد هر دستور زیر را با `uv run` اجرا کنید، مثلاً `uv run python step1_prepare_data.py`. بدون uv: `pip install -r requirements.txt`.
+با **uv** (پیشنهادی): یک بار `uv sync` (محیط و کتابخانه‌ها، از جمله PyTorch با CUDA)، بعد هر دستور زیر را با `uv run` اجرا کنید، مثلاً `uv run python step1_prepare_data.py`. با Miniconda: یک بار `conda env create -f environment.yml`، بعد `conda activate maib-thesis` و دستورها را بدون `uv run` اجرا کنید. بدون uv: `pip install -r requirements.txt`.
 
 این پوشه مستقل است و می‌تواند به‌تنهایی روی سرور قرار بگیرد. `results/` (۲۷ فایل نتیجه، حدود ۴۵ MB)، `reports/` و `data/augmented.csv` همراه کد هستند، پس جدول‌ها و آزمون‌ها (`step5`، `step8`) بدون آموزش دوباره ساخته می‌شوند؛ فقط `step1` باید یک بار اجرا شود تا `data/train.csv` و بقیه دوباره ساخته شوند.
 

@@ -8,7 +8,7 @@ STEP 1 - The labelled dataset, split exactly as in the paper.
   5. Check that the test set is the paper's test set (865 reports, same reports per class).
 
 Run:
-  python step1_prepare_data.py                    # downloads from Hugging Face
+  python step1_prepare_data.py                    # downloads the dataset file from Hugging Face
   python step1_prepare_data.py --file maib.jsonl  # or use a local copy (.csv / .jsonl / .parquet)
 
 Output: data/train.csv, data/val.csv, data/test.csv, data/labels.json, reports/data_summary.json
@@ -35,8 +35,11 @@ if args.file:
                ".jsonl": lambda p: pd.read_json(p, lines=True)}
     df = readers[path.suffix](path)
 else:
-    from datasets import load_dataset
-    df = load_dataset(config.DATASET, split="train").to_pandas()
+    # the dataset is one JSONL file: download it directly (the same rows in the same order as
+    # datasets.load_dataset, without the large `datasets` library and its pyarrow dependency)
+    from huggingface_hub import hf_hub_download
+    path = hf_hub_download(config.DATASET, config.DATASET_FILE, repo_type="dataset")
+    df = pd.read_json(path, lines=True, dtype={"text": str, "label": str})
 
 df = df[["text", "label"]]
 summary = {"raw_reports": len(df)}

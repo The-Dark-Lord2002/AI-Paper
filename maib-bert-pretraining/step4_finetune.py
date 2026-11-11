@@ -11,6 +11,9 @@ Exactly the training of the paper (maib-thesis/step3_train.py); only the encoder
   3. after every epoch, measure macro-F1 on the VALIDATION set and remember the best epoch
   4. go back to the best epoch and evaluate ONCE on the TEST set
   5. save to results/<encoder>__<model>__<loss>__seed<seed>.json   (encoder: "base" = original BERT)
+
+If the run stops (power cut, Ctrl+C), the same command continues after the last finished epoch: the state is
+saved after every epoch in results/<run>.resume.pt (about 2 GB, deleted when the run ends).
 """
 import argparse
 import copy
@@ -24,7 +27,8 @@ from tqdm.auto import tqdm
 from transformers import AutoTokenizer, get_linear_schedule_with_warmup
 
 import config
-from common import compute_metrics, load_split, save_json, set_seed
+from common import (compute_metrics, load_checkpoint, load_split, rng_state, save_checkpoint, save_json, set_rng_state,
+                    set_seed)
 from losses import LOSS_NAMES, make_loss
 from models import MODEL_NAMES, IncidentClassifier
 
@@ -101,10 +105,27 @@ def train(model_name, loss_name, seed, encoder=config.BASE_MODEL, batch_size=con
                                                 total_updates)
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
 
+    # ------------------------------------------------------------------ start, or continue a stopped run
+    resume_path = Path(config.RESULTS_DIR) / f"{name}.resume.pt"
+    settings = {"encoder": str(encoder), "model": model_name, "loss": loss_name, "seed": seed,
+                "batch_size": batch_size, "epochs": config.EPOCHS, "train_reports": len(train_df)}
+    state = load_checkpoint(resume_path, settings)
+    if state is None:
+        best_f1, best_epoch, best_weights, history, first_epoch, minutes_before = -1.0, 0, None, [], 1, 0.0
+    else:
+        model.load_state_dict(state["model"])
+        optimizer.load_state_dict(state["optimizer"])
+        scheduler.load_state_dict(state["scheduler"])
+        scaler.load_state_dict(state["scaler"])
+        set_rng_state(state["rng"])
+        train_loader.generator.set_state(state["loader_rng"])
+        best_f1, best_epoch, best_weights, history = (state[k] for k in ("best_f1", "best_epoch", "best_weights", "history"))
+        first_epoch = config.EPOCHS + 1 if state["stopped"] else state["epoch"] + 1
+        minutes_before = state["minutes"]
+
     # ------------------------------------------------------------------ training loop
-    best_f1, best_epoch, best_weights, history = -1.0, 0, None, []
     start = time.time()
-    for epoch in range(1, config.EPOCHS + 1):
+    for epoch in range(first_epoch, config.EPOCHS + 1):
         model.train()
         running_loss = 0.0
         progress = tqdm(train_loader, desc=f"epoch {epoch}/{config.EPOCHS}", leave=False, mininterval=2)
@@ -128,12 +149,20 @@ def train(model_name, loss_name, seed, encoder=config.BASE_MODEL, batch_size=con
         y_val, p_val = predict(model, val_loader, device, use_amp)
         val_f1 = compute_metrics(y_val, p_val, labels)["macro_f1"]
         history.append({"epoch": epoch, "train_loss": running_loss / len(train_loader), "val_macro_f1": val_f1})
+        minutes = minutes_before + (time.time() - start) / 60
         print(f"[epoch {epoch}] train loss={running_loss / len(train_loader):.4f}  "
-              f"val macro-F1={val_f1:.4f}  ({(time.time() - start) / 60:.1f} min)")
+              f"val macro-F1={val_f1:.4f}  ({minutes:.1f} min)")
         if val_f1 > best_f1:
             best_f1, best_epoch = val_f1, epoch
             best_weights = copy.deepcopy({k: v.cpu() for k, v in model.state_dict().items()})
-        elif epoch - best_epoch >= config.PATIENCE:
+        stop = epoch - best_epoch >= config.PATIENCE
+        save_checkpoint({"settings": settings, "epoch": epoch, "stopped": stop or epoch == config.EPOCHS,
+                         "model": model.state_dict(), "optimizer": optimizer.state_dict(),
+                         "scheduler": scheduler.state_dict(), "scaler": scaler.state_dict(), "rng": rng_state(),
+                         "loader_rng": train_loader.generator.get_state(), "best_f1": best_f1,
+                         "best_epoch": best_epoch, "best_weights": best_weights, "history": history,
+                         "minutes": minutes}, resume_path)
+        if stop:
             print(f"[early stop] no improvement for {config.PATIENCE} epochs")
             break
 
@@ -154,13 +183,14 @@ def train(model_name, loss_name, seed, encoder=config.BASE_MODEL, batch_size=con
                      "max_tokens": config.MAX_TOKENS, "device": str(device)},
         "labels": labels,
         "best_epoch": best_epoch,
-        "train_minutes": round((time.time() - start) / 60, 1),
+        "train_minutes": round(minutes_before + (time.time() - start) / 60, 1),
         "history": history,
         "val": compute_metrics(y_val, p_val, labels),
         "test": test_metrics,
         "test_predictions": p_test.tolist(),
     }
     save_json(result, Path(config.RESULTS_DIR) / f"{name}.json")
+    resume_path.unlink(missing_ok=True)                  # finished: the checkpoint is no longer needed
 
     del model, optimizer, best_weights
     if device.type == "cuda":

@@ -15,11 +15,19 @@ on the task's own training texts it is task-adaptive pre-training (TAPT) (Gurura
 
   python step3_pretrain_mlm.py --corpus external         # DAPT: the other dataset (step 2)
   python step3_pretrain_mlm.py --corpus task             # TAPT: only the TRAINING reports of our dataset
-  python step3_pretrain_mlm.py --corpus external+task    # both
+  python step3_pretrain_mlm.py --corpus external-then-task   # TAPT starting from the DAPT model (run external first)
+  python step3_pretrain_mlm.py --corpus external+task    # both corpora mixed in one run
+  python step3_pretrain_mlm.py --corpus external --max-texts 20000 --epochs 3   # a shorter run on a big corpus
 
-Model selection: after every epoch, the MLM loss is measured on the VALIDATION reports of the labelled
-dataset (their text only) with the same fixed masks every time, and the epoch with the lowest loss is kept.
+How long it trains (the principled way): the number of epochs is not chosen by hand. After every epoch, the
+MLM loss is measured on the VALIDATION reports of the labelled dataset (their text only) with the same fixed
+masks every time. Training stops when this loss has not improved for config.MLM_PATIENCE epochs, and the epoch
+with the lowest loss is kept. config.MLM_EPOCHS is only a ceiling; if the best epoch is the last allowed one,
+the loss was still falling, the run is reported as "not converged" and the ceiling should be raised.
 The test reports are never read.
+
+If the run stops (power cut, Ctrl+C), the same command continues after the last finished epoch: the state is
+saved after every epoch in models/bert-maib-<corpus>.resume.pt (about 2 GB, deleted when the run ends).
 
 Output: models/bert-maib-<corpus>/   the adapted BERT (weights + tokenizer), used by step 4
         reports/pretrain_<corpus>.json  MLM loss and perplexity before and after, per epoch
@@ -27,6 +35,7 @@ Output: models/bert-maib-<corpus>/   the adapted BERT (weights + tokenizer), use
 import argparse
 import copy
 import math
+import random
 import time
 from pathlib import Path
 
@@ -36,19 +45,38 @@ from tqdm.auto import tqdm
 from transformers import AutoModelForMaskedLM, AutoTokenizer, get_linear_schedule_with_warmup
 
 import config
-from common import load_split, read_lines, save_json, set_seed
+from common import (load_checkpoint, load_split, read_lines, rng_state, save_checkpoint, save_json, set_rng_state,
+                    set_seed)
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--corpus", choices=["external", "task", "external+task"], required=True)
-parser.add_argument("--base-model", default=config.BASE_MODEL, help="the BERT to start from")
-parser.add_argument("--epochs", type=int, default=config.MLM_EPOCHS)
+parser.add_argument("--corpus", choices=list(config.MLM_EPOCHS), required=True)
+parser.add_argument("--base-model", help="the BERT to start from (default: the original BERT; for "
+                                         "external-then-task: models/bert-maib-external)")
+parser.add_argument("--epochs", type=int, help="maximum epochs (default: config.MLM_EPOCHS of the corpus)")
+parser.add_argument("--patience", type=int, help="early-stopping patience (default: config.MLM_PATIENCE of the corpus)")
 parser.add_argument("--batch-size", type=int, default=config.MLM_BATCH_SIZE)
 parser.add_argument("--lr", type=float, default=config.MLM_LR)
+parser.add_argument("--max-texts", type=int,
+                    help="use at most this many texts of the other dataset (random, fixed seed): a shorter run")
 args = parser.parse_args()
+args.epochs = args.epochs or config.MLM_EPOCHS[args.corpus]
+args.patience = args.patience or config.MLM_PATIENCE[args.corpus]
 
 name = "bert-maib-" + args.corpus.replace("+", "-")
 out_dir = Path(config.MODELS_DIR) / name
 corpus_dir = Path(config.CORPUS_DIR)
+
+# external-then-task = TAPT on top of DAPT: the texts are the training reports ("task"), but training starts
+# from the BERT already adapted to the other dataset instead of the original BERT.
+if args.corpus == "external-then-task":
+    CORPUS_PARTS = ["task"]
+    args.base_model = args.base_model or str(Path(config.MODELS_DIR) / "bert-maib-external")
+    if not (Path(args.base_model) / "config.json").exists():
+        raise SystemExit(f"{args.base_model} not found: run stage 1 on 'external' first "
+                         "(python step3_pretrain_mlm.py --corpus external).")
+else:
+    CORPUS_PARTS = args.corpus.split("+")
+    args.base_model = args.base_model or config.BASE_MODEL
 
 
 def mask_tokens(input_ids, special, tokenizer, generator):
@@ -134,11 +162,17 @@ def main():
 
     # ------------------------------------------------------------------ texts
     texts = []
-    for part in args.corpus.split("+"):
+    for part in CORPUS_PARTS:
         path = corpus_dir / f"{part}_train.txt"
         if not path.exists():
             raise SystemExit(f"{path} not found. Run step2_build_corpus.py first.")
-        texts += read_lines(path)
+        lines = read_lines(path)
+        if not lines:
+            raise SystemExit(f"{path} is empty: there is no text of the other dataset. Download it with "
+                             "step0_download_sources.py, then run step2_build_corpus.py again.")
+        if part == "external" and args.max_texts and len(lines) > args.max_texts:
+            lines = random.Random(config.MLM_SEED).sample(lines, args.max_texts)
+        texts += lines
     _, val, _, _ = load_split()
     tokenizer = AutoTokenizer.from_pretrained(args.base_model)
     eval_sets = {"labelled_val": fixed_masks(tokenizer, val["text"].tolist())}    # selects the best epoch
@@ -146,13 +180,14 @@ def main():
     if external_val.exists() and read_lines(external_val):
         eval_sets["external_val"] = fixed_masks(tokenizer, read_lines(external_val))
     print(f"===== {name} =====  {len(texts)} texts, {sum(len(t.split()) for t in texts):,} words, "
-          f"device={device}, batch={args.batch_size} x {grad_accum}")
+          f"starting from {args.base_model}, device={device}, batch={args.batch_size} x {grad_accum}, "
+          f"at most {args.epochs} epochs, patience {args.patience}")
 
     # ------------------------------------------------------------------ model and optimiser
+    # The learning rate rises linearly during the first MLM_WARMUP_FRACTION of the updates (warm-up: no large
+    # steps while the optimiser state is still empty), then falls linearly towards 0 at the ceiling of epochs.
+    # Early stopping usually ends the run before the ceiling, which is normal.
     model = AutoModelForMaskedLM.from_pretrained(args.base_model).to(device)
-    before = scores(model, eval_sets, device, use_amp)
-    print(f"[before] {before}")
-
     loader = make_loader(tokenizer, texts, args.batch_size, shuffle=True, seed=config.MLM_SEED)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=config.MLM_WEIGHT_DECAY)
     total_updates = -(-len(loader) // grad_accum) * args.epochs
@@ -161,10 +196,33 @@ def main():
     scaler = torch.amp.GradScaler("cuda", enabled=use_amp)
     mask_generator = torch.Generator().manual_seed(config.MLM_SEED)               # new masks every epoch
 
+    # ------------------------------------------------------------------ start, or continue a stopped run
+    resume_path = Path(config.MODELS_DIR) / f"{name}.resume.pt"
+    # A checkpoint is only continued by a run with exactly these settings (otherwise the result would be a mix).
+    settings = {"corpus": args.corpus, "base_model": args.base_model, "texts": len(texts), "epochs": args.epochs,
+                "patience": args.patience, "batch_size": args.batch_size, "lr": args.lr, "max_texts": args.max_texts}
+    state = load_checkpoint(resume_path, settings)
+    if state is None:
+        before = scores(model, eval_sets, device, use_amp)
+        print(f"[before] {before}")
+        best_loss, best_epoch, best_weights, history, first_epoch, minutes_before = \
+            before["labelled_val"]["loss"], 0, None, [], 1, 0.0
+    else:
+        model.load_state_dict(state["model"])
+        optimizer.load_state_dict(state["optimizer"])
+        scheduler.load_state_dict(state["scheduler"])
+        scaler.load_state_dict(state["scaler"])
+        set_rng_state(state["rng"])
+        mask_generator.set_state(state["mask_rng"])
+        loader.generator.set_state(state["loader_rng"])
+        before, best_loss, best_epoch, best_weights, history = (state[k] for k in
+                                                                ("before", "best_loss", "best_epoch", "best_weights", "history"))
+        first_epoch = args.epochs + 1 if state["stopped"] else state["epoch"] + 1
+        minutes_before = state["minutes"]
+
     # ------------------------------------------------------------------ training loop
-    best_loss, best_epoch, best_weights, history = before["labelled_val"]["loss"], 0, None, []
     start = time.time()
-    for epoch in range(1, args.epochs + 1):
+    for epoch in range(first_epoch, args.epochs + 1):
         model.train()
         running = 0.0
         progress = tqdm(loader, desc=f"epoch {epoch}/{args.epochs}", leave=False, mininterval=2)
@@ -187,13 +245,22 @@ def main():
         epoch_scores = scores(model, eval_sets, device, use_amp)
         history.append({"epoch": epoch, "train_loss": round(running / len(loader), 4), **epoch_scores})
         val_loss = epoch_scores["labelled_val"]["loss"]
+        minutes = minutes_before + (time.time() - start) / 60
         print(f"[epoch {epoch}] train loss={running / len(loader):.4f}  {epoch_scores}  "
-              f"({(time.time() - start) / 60:.1f} min)")
+              f"({minutes:.1f} min; at most {minutes / epoch * (args.epochs - epoch):.0f} min left)")
         if val_loss < best_loss:
             best_loss, best_epoch = val_loss, epoch
             best_weights = copy.deepcopy({k: v.cpu() for k, v in model.state_dict().items()})
-        elif epoch - best_epoch >= config.MLM_PATIENCE:
-            print(f"[early stop] no improvement for {config.MLM_PATIENCE} epochs")
+        stop = epoch - best_epoch >= args.patience      # early stopping
+        save_checkpoint({"settings": settings, "epoch": epoch, "stopped": stop or epoch == args.epochs,
+                         "model": model.state_dict(), "optimizer": optimizer.state_dict(),
+                         "scheduler": scheduler.state_dict(), "scaler": scaler.state_dict(),
+                         "rng": rng_state(), "mask_rng": mask_generator.get_state(),
+                         "loader_rng": loader.generator.get_state(), "before": before, "best_loss": best_loss,
+                         "best_epoch": best_epoch, "best_weights": best_weights, "history": history,
+                         "minutes": minutes}, resume_path)
+        if stop:
+            print(f"[early stop] no improvement for {args.patience} epochs; the best was epoch {best_epoch}")
             break
 
     # ------------------------------------------------------------------ save the best epoch
@@ -203,6 +270,9 @@ def main():
     else:
         model.load_state_dict(best_weights)
     after = scores(model, eval_sets, device, use_amp)
+    # Converged = early stopping ended the run. If the best epoch is the last one that was run and no early stop
+    # happened, the validation loss was still falling: more epochs would probably help.
+    converged = len(history) - (best_epoch if best_weights is not None else 0) >= args.patience
     model.save_pretrained(out_dir)
     tokenizer.save_pretrained(out_dir)
     summary = {
@@ -210,12 +280,17 @@ def main():
         "corpus_texts": len(texts), "corpus_words": sum(len(t.split()) for t in texts),
         "settings": {"mlm_probability": config.MLM_PROBABILITY, "max_tokens": config.MLM_MAX_TOKENS,
                      "batch_size": args.batch_size, "grad_accum": grad_accum, "lr": args.lr,
-                     "epochs": args.epochs, "patience": config.MLM_PATIENCE, "device": str(device)},
-        "best_epoch": best_epoch, "train_minutes": round((time.time() - start) / 60, 1),
+                     "epochs": args.epochs, "patience": args.patience, "max_texts": args.max_texts,
+                     "device": str(device)},
+        "best_epoch": best_epoch, "epochs_run": len(history), "converged": converged, "train_minutes": round(minutes_before + (time.time() - start) / 60, 1),
         "before": before, "after": after, "history": history,
     }
     save_json(summary, Path(config.REPORTS_DIR) / f"pretrain_{args.corpus.replace('+', '-')}.json")
-    print(f"[after] {after}\nSaved {out_dir}/ (best epoch {best_epoch})")
+    resume_path.unlink(missing_ok=True)                  # finished: the checkpoint is no longer needed
+    print(f"[after] {after}\nSaved {out_dir}/ (best epoch {best_epoch} of {len(history)} run)")
+    if not converged:
+        print(f"[warning] NOT CONVERGED: the validation loss was still falling at the last epoch ({args.epochs}). "
+              f"Raise the ceiling (--epochs, or config.MLM_EPOCHS) and run again for a complete pre-training.")
 
 
 if __name__ == "__main__":
