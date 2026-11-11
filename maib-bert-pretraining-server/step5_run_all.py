@@ -80,7 +80,7 @@ def run_one(job):
     env = dict(os.environ, OMP_NUM_THREADS=str(threads), MKL_NUM_THREADS=str(threads),
                OPENBLAS_NUM_THREADS=str(threads), TOKENIZERS_PARALLELISM="false")
     start = time.time()
-    with open(logs / f"{name}.log", "a") as log:
+    with open(logs / f"{name}.log", "a", encoding="utf-8") as log:
         process = subprocess.Popen([sys.executable, "step4_finetune.py", "--model", model, "--loss", loss,
                                     "--seed", str(seed), "--encoder", encoder], stdout=log,
                                    stderr=subprocess.STDOUT, env=env)
@@ -96,7 +96,7 @@ try:
     for k, future in enumerate(as_completed(futures), start=1):
         name, code, minutes = future.result()
         if code == 0:
-            last = [l for l in (logs / f"{name}.log").read_text().splitlines() if l.startswith("[test]")]
+            last = [l for l in (logs / f"{name}.log").read_text(encoding="utf-8", errors="replace").splitlines() if l.startswith("[test]")]
             print(f"[{k}/{len(todo)} finished] {name} in {minutes:.0f} min  {last[-1] if last else ''}", flush=True)
         else:
             failed.append(name)

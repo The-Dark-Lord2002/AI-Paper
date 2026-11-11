@@ -23,7 +23,7 @@ def load_split():
     train = pd.read_csv(data_dir / "train.csv")
     val = pd.read_csv(data_dir / "val.csv")
     test = pd.read_csv(data_dir / "test.csv")
-    labels = json.loads((data_dir / "labels.json").read_text())
+    labels = json.loads((data_dir / "labels.json").read_text(encoding="utf-8"))
     return train, val, test, labels
 
 
@@ -69,7 +69,7 @@ def compute_metrics(y_true, y_pred, labels):
 def save_json(obj, path):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(obj, indent=2, ensure_ascii=False))
+    path.write_text(json.dumps(obj, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
 # ----------------------------------------------------------------------------- resuming an interrupted run

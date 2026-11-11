@@ -226,6 +226,7 @@ def main():
         model.train()
         running = 0.0
         progress = tqdm(loader, desc=f"epoch {epoch}/{args.epochs}", leave=False, mininterval=2)
+        epoch_start = last_report = time.time()
         for step, (input_ids, special, attention_mask) in enumerate(progress, start=1):
             inputs, labels = mask_tokens(input_ids, special, tokenizer, mask_generator)
             with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=use_amp):
@@ -241,6 +242,12 @@ def main():
                 optimizer.zero_grad()
                 scheduler.step()
             progress.set_postfix(loss=f"{running / step:.4f}")
+            if time.time() - last_report > 1800:            # a line every 30 min, for logs without a progress bar
+                last_report = time.time()
+                per_step = (last_report - epoch_start) / step
+                print(f"  ... epoch {epoch}: step {step}/{len(loader)}, train loss {running / step:.4f}, "
+                      f"{per_step:.2f} s/step, about {per_step * (len(loader) - step) / 60:.0f} min left in this epoch",
+                      flush=True)
 
         epoch_scores = scores(model, eval_sets, device, use_amp)
         history.append({"epoch": epoch, "train_loss": round(running / len(loader), 4), **epoch_scores})

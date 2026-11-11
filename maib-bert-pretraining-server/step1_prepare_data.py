@@ -83,7 +83,7 @@ train.to_csv(data_dir / "train.csv", index=False)
 val.to_csv(data_dir / "val.csv", index=False)
 test.to_csv(data_dir / "test.csv", index=False)
 labels = sorted(kept.index)
-(data_dir / "labels.json").write_text(json.dumps(labels, indent=2))
+(data_dir / "labels.json").write_text(json.dumps(labels, indent=2), encoding="utf-8")
 
 # ----------------------------------------------------------------------------- 5. same test set as the paper?
 test_counts = test["label"].value_counts().to_dict()

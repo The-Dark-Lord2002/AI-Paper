@@ -67,7 +67,7 @@ def main():
     # ------------------------------------------------------------------ read the result files
     runs = defaultdict(dict)                         # (encoder, model, loss) -> {seed: result}
     for path in sorted(Path(config.RESULTS_DIR).glob("*.json")):
-        d = json.loads(path.read_text())
+        d = json.loads(path.read_text(encoding="utf-8"))
         if d.get("tag") or "test_predictions" not in d or d["model"].startswith("tfidf"):
             continue                                 # e.g. augmented or oversampled runs copied from the paper
         pred = np.array(d["test_predictions"])
@@ -116,7 +116,7 @@ def main():
     # ------------------------------------------------------------------ MLM perplexity (step 3)
     pretrain = []
     for path in sorted(Path(config.REPORTS_DIR).glob("pretrain_*.json")):
-        d = json.loads(path.read_text())
+        d = json.loads(path.read_text(encoding="utf-8"))
         pretrain.append({"encoder": d["model"], "corpus texts": d["corpus_texts"], "corpus words": d["corpus_words"],
                          "starts from": Path(d["base_model"]).name, "best epoch": d["best_epoch"],
                          "epochs run": d.get("epochs_run", len(d["history"])),
@@ -139,7 +139,7 @@ def main():
             "Perplexities of different corpora are not comparable as a measure of quality: TAPT is trained on texts\n"
             "like the validation reports, so its perplexity is lower without the encoder being better for classification.\n\n"
             + (markdown(pretrain) if len(pretrain) else "No step-3 summary found.") + "\n")
-    (out / "comparison.md").write_text(text)
+    (out / "comparison.md").write_text(text, encoding="utf-8")
     print(text)
     print(f"Saved {out / 'comparison.md'}")
 

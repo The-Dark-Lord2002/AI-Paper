@@ -24,6 +24,7 @@ the next one is still training.
 """
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -44,6 +45,10 @@ parser.add_argument("--max-texts", type=int, help="step 3: at most this many tex
                                                   "(default: all of them)")
 parser.add_argument("--mlm-epochs", type=int, help="step 3: maximum epochs for every corpus "
                                                    "(default: config.MLM_EPOCHS, with early stopping)")
+parser.add_argument("--mlm-batch-size", type=int, help="step 3: texts per step (default config.MLM_BATCH_SIZE = 32, "
+                    "for a 16 GB GPU). Use 8 on a 4 GB GPU: the effective batch stays 32 (8 x 4 accumulation)")
+parser.add_argument("--log", help="also write everything to this file (e.g. run_full.log); works on Windows, "
+                                  "where there is no 'tee'. Progress bars are replaced by a line every 30 min")
 parser.add_argument("--workers", type=int, default=1, help="stage 2: fine-tunings at the same time (CPU server: "
                                                             "e.g. 4 on 80 cores; default 1, one after the other)")
 parser.add_argument("--threads", type=int, help="stage 2 with --workers: CPU cores for each fine-tuning")
@@ -54,12 +59,47 @@ args = parser.parse_args()
 START = time.time()
 
 
+class Tee:
+    """Write to the screen and to the log file at the same time."""
+    def __init__(self, stream, path):
+        self.stream, self.file = stream, open(path, "a", encoding="utf-8", errors="replace")
+
+    def write(self, text):
+        self.stream.write(text)
+        self.file.write(text)
+        self.file.flush()
+
+    def flush(self):
+        self.stream.flush()
+
+
+if args.log:
+    sys.stdout = Tee(sys.stdout, args.log)
+# Every step reads and writes text as UTF-8 (the Windows default would corrupt characters of the reports).
+STEP_ENV = dict(os.environ, PYTHONUTF8="1", PYTHONIOENCODING="utf-8")
+if args.log:
+    STEP_ENV.update(PYTHONUNBUFFERED="1", TQDM_DISABLE="1")     # line by line into the log, no progress bars
+
+
 def run(script, *script_args):
     """Run one step as its own process; stop the pipeline if it fails."""
     command = [sys.executable, script, *map(str, script_args)]
     print(f"\n{'=' * 78}\n>>> {' '.join(command[1:])}    ({(time.time() - START) / 3600:.1f} h so far)\n{'=' * 78}",
           flush=True)
-    subprocess.run(command, check=True)
+    if not args.log:
+        subprocess.run(command, check=True, env=STEP_ENV)
+        return
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=STEP_ENV,
+                               text=True, encoding="utf-8", errors="replace")
+    try:
+        for line in process.stdout:                 # copy the step's output to the screen and the log
+            print(line, end="", flush=True)
+        code = process.wait()
+    except BaseException:                           # Ctrl+C or closing the window: stop the step too
+        process.kill()
+        raise
+    if code:
+        raise subprocess.CalledProcessError(code, command)
 
 
 def source_files():
@@ -110,14 +150,14 @@ def main():
         run("step0_download_sources.py", *extra)
     if not (Path(config.DATA_DIR) / "test.csv").exists():
         run("step1_prepare_data.py")
-    summary = json.loads((Path(config.REPORTS_DIR) / "data_summary.json").read_text())
+    summary = json.loads((Path(config.REPORTS_DIR) / "data_summary.json").read_text(encoding="utf-8"))
     if not summary.get("same_test_set_as_paper"):
         raise SystemExit("The test set is not the paper's (see step 1). Stopped: the comparison would not be fair.")
     if args.rebuild_corpus or not corpus_up_to_date(needs_external):
         run("step2_build_corpus.py")
     else:
         print("\n[skip] step 2: the corpus is up to date (use --rebuild-corpus to build it again)")
-    if needs_external and not (Path(config.CORPUS_DIR) / "external_train.txt").read_text().strip():
+    if needs_external and not (Path(config.CORPUS_DIR) / "external_train.txt").read_text(encoding="utf-8").strip():
         raise SystemExit("No text of the other dataset is left after step 2. Check corpus_sources/ and "
                          "reports/corpus_summary.json, or run with --corpora task.")
 
@@ -128,6 +168,7 @@ def main():
             return
         ceiling = args.external_epochs if corpus == "external" and args.external_epochs else args.mlm_epochs
         extra = (["--epochs", ceiling] if ceiling else []) + \
+                (["--batch-size", args.mlm_batch_size] if args.mlm_batch_size else []) + \
                 (["--max-texts", args.max_texts] if args.max_texts and "external" in corpus.split("+") else [])
         run("step3_pretrain_mlm.py", "--corpus", corpus, *extra)
 
@@ -157,6 +198,8 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+    except KeyboardInterrupt:
+        sys.exit("\nStopped. Run the same command again to continue: finished work is kept.")
     except subprocess.CalledProcessError as error:
         sys.exit(f"\nStopped: a step failed (exit code {error.returncode}); its messages are above. "
                  "Fix the cause and run the same command again: finished work is skipped.")

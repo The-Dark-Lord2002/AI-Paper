@@ -129,6 +129,7 @@ def train(model_name, loss_name, seed, encoder=config.BASE_MODEL, batch_size=con
         model.train()
         running_loss = 0.0
         progress = tqdm(train_loader, desc=f"epoch {epoch}/{config.EPOCHS}", leave=False, mininterval=2)
+        epoch_start = last_report = time.time()
         for step, (input_ids, attention_mask, labels_batch) in enumerate(progress, start=1):
             input_ids, attention_mask = input_ids.to(device), attention_mask.to(device)
             labels_batch = labels_batch.to(device)
@@ -145,6 +146,11 @@ def train(model_name, loss_name, seed, encoder=config.BASE_MODEL, batch_size=con
                 optimizer.zero_grad()
                 scheduler.step()
             progress.set_postfix(loss=f"{running_loss / step:.4f}")
+            if time.time() - last_report > 1800:            # a line every 30 min, for logs without a progress bar
+                last_report = time.time()
+                per_step = (last_report - epoch_start) / step
+                print(f"  ... epoch {epoch}: step {step}/{len(train_loader)}, {per_step:.2f} s/step, about "
+                      f"{per_step * (len(train_loader) - step) / 60:.0f} min left in this epoch", flush=True)
 
         y_val, p_val = predict(model, val_loader, device, use_amp)
         val_f1 = compute_metrics(y_val, p_val, labels)["macro_f1"]
