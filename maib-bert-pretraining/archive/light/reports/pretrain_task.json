@@ -1,0 +1,114 @@
+{
+  "model": "bert-maib-task",
+  "base_model": "bert-base-uncased",
+  "corpus": "task",
+  "corpus_texts": 4033,
+  "corpus_words": 268908,
+  "settings": {
+    "mlm_probability": 0.15,
+    "max_tokens": 192,
+    "batch_size": 8,
+    "grad_accum": 4,
+    "lr": 5e-05,
+    "epochs": 10,
+    "patience": 2,
+    "max_texts": null,
+    "device": "cuda"
+  },
+  "best_epoch": 9,
+  "train_minutes": 165.8,
+  "before": {
+    "labelled_val": {
+      "loss": 2.1058,
+      "perplexity": 8.21
+    }
+  },
+  "after": {
+    "labelled_val": {
+      "loss": 1.1709,
+      "perplexity": 3.22
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 1.7579,
+      "labelled_val": {
+        "loss": 1.4458,
+        "perplexity": 4.25
+      }
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.4086,
+      "labelled_val": {
+        "loss": 1.3419,
+        "perplexity": 3.83
+      }
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.3065,
+      "labelled_val": {
+        "loss": 1.2887,
+        "perplexity": 3.63
+      }
+    },
+    {
+      "epoch": 4,
+      "train_loss": 1.2403,
+      "labelled_val": {
+        "loss": 1.2701,
+        "perplexity": 3.56
+      }
+    },
+    {
+      "epoch": 5,
+      "train_loss": 1.1944,
+      "labelled_val": {
+        "loss": 1.2394,
+        "perplexity": 3.45
+      }
+    },
+    {
+      "epoch": 6,
+      "train_loss": 1.1633,
+      "labelled_val": {
+        "loss": 1.21,
+        "perplexity": 3.35
+      }
+    },
+    {
+      "epoch": 7,
+      "train_loss": 1.1016,
+      "labelled_val": {
+        "loss": 1.1935,
+        "perplexity": 3.3
+      }
+    },
+    {
+      "epoch": 8,
+      "train_loss": 1.0747,
+      "labelled_val": {
+        "loss": 1.1809,
+        "perplexity": 3.26
+      }
+    },
+    {
+      "epoch": 9,
+      "train_loss": 1.0568,
+      "labelled_val": {
+        "loss": 1.1709,
+        "perplexity": 3.22
+      }
+    },
+    {
+      "epoch": 10,
+      "train_loss": 1.0532,
+      "labelled_val": {
+        "loss": 1.1719,
+        "perplexity": 3.23
+      }
+    }
+  ]
+}
