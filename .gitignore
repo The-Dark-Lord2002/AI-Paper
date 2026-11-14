@@ -27,3 +27,11 @@ presentations/_build/update.html
 
 # Compiled paper (rebuild with latexmk)
 docs/paper/main.pdf
+
+# Large downloads and archives, never committed
+maib-bert-pretraining/corpus_sources/*
+maib-bert-pretraining-server/corpus_sources/*
+!maib-bert-pretraining/corpus_sources/.gitkeep
+!maib-bert-pretraining-server/corpus_sources/.gitkeep
+*.zip
+*.whl
