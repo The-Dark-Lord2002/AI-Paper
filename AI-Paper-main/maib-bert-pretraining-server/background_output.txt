@@ -1,0 +1,788 @@
+Plan: stage 1 on ['task', 'external'] (each until early stopping); stage 2: up to 18 fine-tuning runs of ~25 min on a Tesla T4 (finished runs are skipped). Seeds [1, 2, 3].
+
+[skip] step 2: the corpus is up to date (use --rebuild-corpus to build it again)
+
+==============================================================================
+>>> step5_run_all.py --encoders bert-base-uncased    (0.0 h so far)
+==============================================================================
+6 runs: 1 encoders x 2 configurations x 3 seeds
+[1/6] base__bert__ce__seed1: already done, skipped
+[2/6] base__bert__ce__seed2: already done, skipped
+[4/6] base__bert_bilstm_att__wce__seed1: already done, skipped
+[5/6] base__bert_bilstm_att__wce__seed2: already done, skipped
+[1/2 to do]
+===== base__bert__ce__seed3 =====  encoder=bert-base-uncased  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[epoch 1] train loss=0.9163  val macro-F1=0.8737  (9.6 min)
+[epoch 2] train loss=0.2475  val macro-F1=0.9057  (19.5 min)
+[epoch 3] train loss=0.1450  val macro-F1=0.8987  (29.4 min)
+[epoch 4] train loss=0.0877  val macro-F1=0.9081  (39.4 min)
+[epoch 5] train loss=0.0540  val macro-F1=0.9093  (49.2 min)
+[test] macro-F1=0.9088  accuracy=0.9341  (best epoch 5)
+[2/2 to do]
+===== base__bert_bilstm_att__wce__seed3 =====  encoder=bert-base-uncased  device=cuda  batch=8 x 4
+Could not reach the Hub ([Errno 11001] getaddrinfo failed). Using cached commit hash for 'bert-base-uncased'.
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 1s [Retry 1/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 2s [Retry 2/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 4s [Retry 3/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 8s [Retry 4/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 8s [Retry 5/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 1s [Retry 1/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 2s [Retry 2/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 4s [Retry 3/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 8s [Retry 4/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 8s [Retry 5/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Could not reach the Hub ([Errno 11001] getaddrinfo failed). Using cached commit hash for 'bert-base-uncased'.
+[transformers] [1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[epoch 1] train loss=1.0523  val macro-F1=0.8385  (29.3 min)
+Traceback (most recent call last):
+  File "C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\step5_run_all.py", line 65, in <module>
+    train(model, loss, seed, encoder=encoder)
+  File "C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\step4_finetune.py", line 155, in train
+    y_val, p_val = predict(model, val_loader, device, use_amp)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\.venv\Lib\site-packages\torch\utils\_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\step4_finetune.py", line 72, in predict
+    logits, _ = model(input_ids.to(device), attention_mask.to(device))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1751, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\.venv\Lib\site-packages\torch\nn\modules\module.py", line 1762, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\models.py", line 103, in forward
+    states, _ = self.run_bilstm(h, attention_mask)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\models.py", line 81, in run_bilstm
+    lengths = mask.sum(dim=1).cpu()
+              ^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: CUDA error: the launch timed out and was terminated
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
+
+Stopped: a step failed (exit code 1); its messages are above. Fix the cause and run the same command again: finished work is skipped.
+Plan: stage 1 on ['task', 'external'] (each until early stopping); stage 2: up to 18 fine-tuning runs of ~25 min on a Tesla T4 (finished runs are skipped). Seeds [1, 2, 3].
+
+[skip] step 2: the corpus is up to date (use --rebuild-corpus to build it again)
+
+==============================================================================
+>>> step5_run_all.py --encoders bert-base-uncased    (0.0 h so far)
+==============================================================================
+6 runs: 1 encoders x 2 configurations x 3 seeds
+[1/6] base__bert__ce__seed1: already done, skipped
+[2/6] base__bert__ce__seed2: already done, skipped
+[3/6] base__bert__ce__seed3: already done, skipped
+[4/6] base__bert_bilstm_att__wce__seed1: already done, skipped
+[5/6] base__bert_bilstm_att__wce__seed2: already done, skipped
+[1/1 to do]
+===== base__bert_bilstm_att__wce__seed3 =====  encoder=bert-base-uncased  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: bert-base-uncased
+Key                                        | Status     |  | 
+-------------------------------------------+------------+--+-
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED |  | 
+cls.seq_relationship.weight                | UNEXPECTED |  | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED |  | 
+cls.predictions.transform.dense.weight     | UNEXPECTED |  | 
+cls.predictions.transform.dense.bias       | UNEXPECTED |  | 
+cls.seq_relationship.bias                  | UNEXPECTED |  | 
+cls.predictions.bias                       | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[resume] continuing after epoch 1 (from results\base__bert_bilstm_att__wce__seed3.resume.pt)
+[epoch 2] train loss=0.3010  val macro-F1=0.9163  (39.3 min)
+[epoch 3] train loss=0.1931  val macro-F1=0.9102  (49.3 min)
+[epoch 4] train loss=0.1307  val macro-F1=0.9073  (59.6 min)
+[early stop] no improvement for 2 epochs
+[test] macro-F1=0.9010  accuracy=0.9237  (best epoch 2)
+
+==============================================================================
+>>> step6_compare.py    (0.5 h so far)
+==============================================================================
+# Original BERT vs domain-adapted BERT (test set, 865 reports)
+
+## Results (mean ± standard deviation over seeds)
+
+| configuration | encoder | seeds | macro-F1 | accuracy | macro-P | macro-R | critical recall | F1 Fire | F1 Capsizing | F1 Flooding |
+|---|---|---|---|---|---|---|---|---|---|---|
+| bert + ce | base | 3 | 0.901 ± 0.008 | 0.929 ± 0.005 | 0.907 ± 0.011 | 0.898 ± 0.006 | 0.867 ± 0.011 | 0.962 ± 0.006 | 0.843 ± 0.024 | 0.826 ± 0.027 |
+| bert_bilstm_att + wce | base | 3 | 0.910 ± 0.009 | 0.931 ± 0.007 | 0.920 ± 0.011 | 0.905 ± 0.006 | 0.870 ± 0.012 | 0.969 ± 0.000 | 0.864 ± 0.022 | 0.882 ± 0.008 |
+
+## Significance: adapted encoder (B) against the original BERT (A)
+
+Paired bootstrap of the seed-averaged macro-F1 difference (2000 resamples); exact McNemar test per seed.
+
+No adapted encoder with the same seeds as base yet.
+
+## Stage 1: MLM perplexity on the validation reports (lower = BERT knows the language better)
+
+converged = early stopping ended the run; NO = the loss was still falling at the last allowed epoch.
+Perplexities of different corpora are not comparable as a measure of quality: TAPT is trained on texts
+like the validation reports, so its perplexity is lower without the encoder being better for classification.
+
+No step-3 summary found.
+
+Saved reports\comparison.md
+
+==============================================================================
+>>> step3_pretrain_mlm.py --corpus task --batch-size 8    (0.6 h so far)
+==============================================================================
+Could not reach the Hub ([Errno 11001] getaddrinfo failed). Using cached commit hash for 'bert-base-uncased'.
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 1s [Retry 1/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 2s [Retry 2/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 4s [Retry 3/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 8s [Retry 4/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 8s [Retry 5/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 1s [Retry 1/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 2s [Retry 2/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 4s [Retry 3/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 8s [Retry 4/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 8s [Retry 5/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+===== bert-maib-task =====  4033 texts, 268,908 words, starting from bert-base-uncased, device=cuda, batch=8 x 4, at most 50 epochs, patience 3
+Could not reach the Hub ([Errno 11001] getaddrinfo failed). Using cached commit hash for 'bert-base-uncased'.
+[transformers] [1mBertForMaskedLM LOAD REPORT[0m from: bert-base-uncased
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+bert.pooler.dense.bias      | UNEXPECTED |  | 
+cls.seq_relationship.weight | UNEXPECTED |  | 
+bert.pooler.dense.weight    | UNEXPECTED |  | 
+cls.seq_relationship.bias   | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[before] {'labelled_val': {'loss': 2.1058, 'perplexity': 8.21}, 'external_val': {'loss': 2.7307, 'perplexity': 15.34}}
+[epoch 1] train loss=1.9414  {'labelled_val': {'loss': 1.5982, 'perplexity': 4.94}, 'external_val': {'loss': 2.5464, 'perplexity': 12.76}}  (13.5 min; at most 663 min left)
+[epoch 2] train loss=1.5545  {'labelled_val': {'loss': 1.4218, 'perplexity': 4.14}, 'external_val': {'loss': 2.5601, 'perplexity': 12.94}}  (27.1 min; at most 650 min left)
+[epoch 3] train loss=1.4127  {'labelled_val': {'loss': 1.3492, 'perplexity': 3.85}, 'external_val': {'loss': 2.5805, 'perplexity': 13.2}}  (40.6 min; at most 636 min left)
+[epoch 4] train loss=1.3258  {'labelled_val': {'loss': 1.3131, 'perplexity': 3.72}, 'external_val': {'loss': 2.6076, 'perplexity': 13.57}}  (54.2 min; at most 623 min left)
+[epoch 5] train loss=1.2578  {'labelled_val': {'loss': 1.2802, 'perplexity': 3.6}, 'external_val': {'loss': 2.6228, 'perplexity': 13.77}}  (67.9 min; at most 612 min left)
+[epoch 6] train loss=1.2111  {'labelled_val': {'loss': 1.2426, 'perplexity': 3.46}, 'external_val': {'loss': 2.6662, 'perplexity': 14.38}}  (81.7 min; at most 599 min left)
+[epoch 7] train loss=1.1420  {'labelled_val': {'loss': 1.2216, 'perplexity': 3.39}, 'external_val': {'loss': 2.6336, 'perplexity': 13.92}}  (95.5 min; at most 587 min left)
+[epoch 8] train loss=1.0991  {'labelled_val': {'loss': 1.216, 'perplexity': 3.37}, 'external_val': {'loss': 2.6714, 'perplexity': 14.46}}  (109.1 min; at most 573 min left)
+[epoch 9] train loss=1.0669  {'labelled_val': {'loss': 1.1904, 'perplexity': 3.29}, 'external_val': {'loss': 2.6856, 'perplexity': 14.67}}  (122.7 min; at most 559 min left)
+[epoch 10] train loss=1.0449  {'labelled_val': {'loss': 1.1775, 'perplexity': 3.25}, 'external_val': {'loss': 2.6538, 'perplexity': 14.21}}  (136.3 min; at most 545 min left)
+[epoch 11] train loss=1.0271  {'labelled_val': {'loss': 1.1951, 'perplexity': 3.3}, 'external_val': {'loss': 2.7269, 'perplexity': 15.28}}  (149.9 min; at most 532 min left)
+[epoch 12] train loss=0.9918  {'labelled_val': {'loss': 1.1619, 'perplexity': 3.2}, 'external_val': {'loss': 2.6951, 'perplexity': 14.81}}  (163.4 min; at most 517 min left)
+[epoch 13] train loss=0.9588  {'labelled_val': {'loss': 1.1746, 'perplexity': 3.24}, 'external_val': {'loss': 2.7134, 'perplexity': 15.08}}  (177.1 min; at most 504 min left)
+[epoch 14] train loss=0.9505  {'labelled_val': {'loss': 1.1506, 'perplexity': 3.16}, 'external_val': {'loss': 2.7144, 'perplexity': 15.1}}  (190.6 min; at most 490 min left)
+[epoch 15] train loss=0.9059  {'labelled_val': {'loss': 1.1578, 'perplexity': 3.18}, 'external_val': {'loss': 2.7328, 'perplexity': 15.38}}  (204.2 min; at most 477 min left)
+[epoch 16] train loss=0.8915  {'labelled_val': {'loss': 1.1531, 'perplexity': 3.17}, 'external_val': {'loss': 2.7254, 'perplexity': 15.26}}  (217.7 min; at most 463 min left)
+[epoch 17] train loss=0.8859  {'labelled_val': {'loss': 1.1504, 'perplexity': 3.16}, 'external_val': {'loss': 2.716, 'perplexity': 15.12}}  (231.3 min; at most 449 min left)
+[early stop] no improvement for 3 epochs; the best was epoch 14
+[after] {'labelled_val': {'loss': 1.1506, 'perplexity': 3.16}, 'external_val': {'loss': 2.7144, 'perplexity': 15.1}}
+Saved models\bert-maib-task/ (best epoch 14 of 17 run)
+
+==============================================================================
+>>> step5_run_all.py --encoders models\bert-maib-task --skip-base    (4.5 h so far)
+==============================================================================
+6 runs: 1 encoders x 2 configurations x 3 seeds
+[1/6 to do]
+===== bert-maib-task__bert__ce__seed1 =====  encoder=models\bert-maib-task  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-task
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+pooler.dense.bias                          | MISSING    | 
+pooler.dense.weight                        | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.8012  val macro-F1=0.8919  (9.6 min)
+[epoch 2] train loss=0.2164  val macro-F1=0.9114  (19.2 min)
+[epoch 3] train loss=0.1309  val macro-F1=0.9183  (29.1 min)
+[epoch 4] train loss=0.0739  val macro-F1=0.9167  (38.9 min)
+[epoch 5] train loss=0.0435  val macro-F1=0.9124  (48.8 min)
+[early stop] no improvement for 2 epochs
+[test] macro-F1=0.9182  accuracy=0.9387  (best epoch 3)
+[2/6 to do]
+===== bert-maib-task__bert__ce__seed2 =====  encoder=models\bert-maib-task  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-task
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+pooler.dense.bias                          | MISSING    | 
+pooler.dense.weight                        | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+  ... epoch 1: step 352/505, 5.12 s/step, about 13 min left in this epoch
+[epoch 1] train loss=0.8061  val macro-F1=0.8894  (44.2 min)
+  ... epoch 2: step 343/505, 5.27 s/step, about 14 min left in this epoch
+[epoch 2] train loss=0.2103  val macro-F1=0.9150  (90.2 min)
+  ... epoch 3: step 343/505, 5.25 s/step, about 14 min left in this epoch
+[epoch 3] train loss=0.1276  val macro-F1=0.9153  (135.6 min)
+  ... epoch 4: step 336/505, 5.38 s/step, about 15 min left in this epoch
+[epoch 4] train loss=0.0766  val macro-F1=0.9113  (181.4 min)
+[epoch 5] train loss=0.0471  val macro-F1=0.9142  (191.5 min)
+[early stop] no improvement for 2 epochs
+[test] macro-F1=0.9155  accuracy=0.9387  (best epoch 3)
+[3/6 to do]
+===== bert-maib-task__bert__ce__seed3 =====  encoder=models\bert-maib-task  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-task
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+pooler.dense.bias                          | MISSING    | 
+pooler.dense.weight                        | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+  ... epoch 1: step 348/505, 5.17 s/step, about 14 min left in this epoch
+[epoch 1] train loss=0.8284  val macro-F1=0.8968  (46.9 min)
+  ... epoch 2: step 342/505, 5.29 s/step, about 14 min left in this epoch
+[epoch 2] train loss=0.2140  val macro-F1=0.9154  (95.4 min)
+  ... epoch 3: step 346/505, 5.20 s/step, about 14 min left in this epoch
+[epoch 3] train loss=0.1318  val macro-F1=0.9116  (142.9 min)
+  ... epoch 4: step 345/505, 5.22 s/step, about 14 min left in this epoch
+[epoch 4] train loss=0.0810  val macro-F1=0.9161  (191.1 min)
+  ... epoch 5: step 344/505, 5.25 s/step, about 14 min left in this epoch
+[epoch 5] train loss=0.0478  val macro-F1=0.9149  (238.4 min)
+[test] macro-F1=0.9131  accuracy=0.9399  (best epoch 4)
+[4/6 to do]
+===== bert-maib-task__bert_bilstm_att__wce__seed1 =====  encoder=models\bert-maib-task  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-task
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+pooler.dense.bias                          | MISSING    | 
+pooler.dense.weight                        | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.9456  val macro-F1=0.8984  (9.9 min)
+[epoch 2] train loss=0.2622  val macro-F1=0.9217  (19.9 min)
+[epoch 3] train loss=0.1925  val macro-F1=0.9124  (30.2 min)
+[epoch 4] train loss=0.1241  val macro-F1=0.9097  (40.4 min)
+[early stop] no improvement for 2 epochs
+[test] macro-F1=0.9108  accuracy=0.9341  (best epoch 2)
+[5/6 to do]
+===== bert-maib-task__bert_bilstm_att__wce__seed2 =====  encoder=models\bert-maib-task  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-task
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+pooler.dense.bias                          | MISSING    | 
+pooler.dense.weight                        | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.9173  val macro-F1=0.9044  (18.0 min)
+[epoch 2] train loss=0.2584  val macro-F1=0.9156  (36.0 min)
+[epoch 3] train loss=0.1702  val macro-F1=0.9275  (54.2 min)
+[epoch 4] train loss=0.1114  val macro-F1=0.9131  (72.3 min)
+[epoch 5] train loss=0.0732  val macro-F1=0.9167  (90.4 min)
+[early stop] no improvement for 2 epochs
+[test] macro-F1=0.9079  accuracy=0.9283  (best epoch 3)
+[6/6 to do]
+===== bert-maib-task__bert_bilstm_att__wce__seed3 =====  encoder=models\bert-maib-task  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-task
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+pooler.dense.bias                          | MISSING    | 
+pooler.dense.weight                        | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.9392  val macro-F1=0.8851  (10.1 min)
+[epoch 2] train loss=0.2600  val macro-F1=0.9121  (20.3 min)
+[epoch 3] train loss=0.1833  val macro-F1=0.9166  (30.6 min)
+[epoch 4] train loss=0.1190  val macro-F1=0.9130  (41.0 min)
+[epoch 5] train loss=0.0851  val macro-F1=0.9153  (51.1 min)
+[early stop] no improvement for 2 epochs
+[test] macro-F1=0.9152  accuracy=0.9364  (best epoch 3)
+
+==============================================================================
+>>> step6_compare.py    (15.8 h so far)
+==============================================================================
+# Original BERT vs domain-adapted BERT (test set, 865 reports)
+
+## Results (mean ± standard deviation over seeds)
+
+| configuration | encoder | seeds | macro-F1 | accuracy | macro-P | macro-R | critical recall | F1 Fire | F1 Capsizing | F1 Flooding |
+|---|---|---|---|---|---|---|---|---|---|---|
+| bert + ce | base | 3 | 0.901 ± 0.008 | 0.929 ± 0.005 | 0.907 ± 0.011 | 0.898 ± 0.006 | 0.867 ± 0.011 | 0.962 ± 0.006 | 0.843 ± 0.024 | 0.826 ± 0.027 |
+| bert + ce | bert-maib-task | 3 | 0.916 ± 0.003 | 0.939 ± 0.001 | 0.928 ± 0.006 | 0.908 ± 0.002 | 0.867 ± 0.003 | 0.973 ± 0.006 | 0.836 ± 0.018 | 0.876 ± 0.018 |
+| bert_bilstm_att + wce | base | 3 | 0.910 ± 0.009 | 0.931 ± 0.007 | 0.920 ± 0.011 | 0.905 ± 0.006 | 0.870 ± 0.012 | 0.969 ± 0.000 | 0.864 ± 0.022 | 0.882 ± 0.008 |
+| bert_bilstm_att + wce | bert-maib-task | 3 | 0.911 ± 0.004 | 0.933 ± 0.004 | 0.921 ± 0.005 | 0.907 ± 0.011 | 0.873 ± 0.022 | 0.963 ± 0.011 | 0.860 ± 0.025 | 0.876 ± 0.038 |
+
+## Significance: adapted encoder (B) against the original BERT (A)
+
+Paired bootstrap of the seed-averaged macro-F1 difference (2000 resamples); exact McNemar test per seed.
+
+| configuration | encoder (B) vs base (A) | seeds | delta macro-F1 | 95% CI | bootstrap p | McNemar p per seed |
+|---|---|---|---|---|---|---|
+| bert + ce | bert-maib-task | 3 | +0.0143 | [+0.0015, +0.0278] | 0.032 | 0.024, 0.210, 0.473 |
+| bert_bilstm_att + wce | bert-maib-task | 3 | +0.0014 | [-0.0083, +0.0109] | 0.776 | 0.648, 0.523, 0.043 |
+
+## Stage 1: MLM perplexity on the validation reports (lower = BERT knows the language better)
+
+converged = early stopping ended the run; NO = the loss was still falling at the last allowed epoch.
+Perplexities of different corpora are not comparable as a measure of quality: TAPT is trained on texts
+like the validation reports, so its perplexity is lower without the encoder being better for classification.
+
+| encoder | corpus texts | corpus words | starts from | best epoch | epochs run | converged | perplexity before | perplexity after |
+|---|---|---|---|---|---|---|---|---|
+| bert-maib-task | 4033 | 268908 | bert-base-uncased | 14 | 17 | yes | 8.21 | 3.16 |
+
+Saved reports\comparison.md
+
+==============================================================================
+>>> step3_pretrain_mlm.py --corpus external --epochs 3 --batch-size 8    (15.8 h so far)
+==============================================================================
+Could not reach the Hub ([Errno 11001] getaddrinfo failed). Using cached commit hash for 'bert-base-uncased'.
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 1s [Retry 1/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 2s [Retry 2/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 4s [Retry 3/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 8s [Retry 4/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+Retrying in 8s [Retry 5/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main/additional_chat_templates
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 1s [Retry 1/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 2s [Retry 2/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 4s [Retry 3/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 8s [Retry 4/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+Retrying in 8s [Retry 5/5].
+'[Errno 11001] getaddrinfo failed' thrown while requesting GET https://huggingface.co/api/models/bert-base-uncased/tree/main
+===== bert-maib-external =====  69395 texts, 9,231,654 words, starting from bert-base-uncased, device=cuda, batch=8 x 4, at most 3 epochs, patience 2
+Could not reach the Hub ([Errno 11001] getaddrinfo failed). Using cached commit hash for 'bert-base-uncased'.
+[transformers] [1mBertForMaskedLM LOAD REPORT[0m from: bert-base-uncased
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+cls.seq_relationship.weight | UNEXPECTED |  | 
+cls.seq_relationship.bias   | UNEXPECTED |  | 
+bert.pooler.dense.bias      | UNEXPECTED |  | 
+bert.pooler.dense.weight    | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[before] {'labelled_val': {'loss': 2.1058, 'perplexity': 8.21}, 'external_val': {'loss': 2.7307, 'perplexity': 15.34}}
+  ... epoch 1: step 1053/8675, train loss 2.4991, 1.71 s/step, about 217 min left in this epoch
+  ... epoch 1: step 2103/8675, train loss 2.3425, 1.71 s/step, about 188 min left in this epoch
+  ... epoch 1: step 3152/8675, train loss 2.2497, 1.71 s/step, about 158 min left in this epoch
+  ... epoch 1: step 4202/8675, train loss 2.1806, 1.71 s/step, about 128 min left in this epoch
+  ... epoch 1: step 5252/8675, train loss 2.1296, 1.71 s/step, about 98 min left in this epoch
+  ... epoch 1: step 6303/8675, train loss 2.0905, 1.71 s/step, about 68 min left in this epoch
+  ... epoch 1: step 7353/8675, train loss 2.0544, 1.71 s/step, about 38 min left in this epoch
+  ... epoch 1: step 8403/8675, train loss 2.0255, 1.71 s/step, about 8 min left in this epoch
+[epoch 1] train loss=2.0187  {'labelled_val': {'loss': 1.6155, 'perplexity': 5.03}, 'external_val': {'loss': 1.6814, 'perplexity': 5.37}}  (251.0 min; at most 502 min left)
+  ... epoch 2: step 1048/8675, train loss 1.7828, 1.72 s/step, about 218 min left in this epoch
+  ... epoch 2: step 2093/8675, train loss 1.7671, 1.72 s/step, about 189 min left in this epoch
+  ... epoch 2: step 3138/8675, train loss 1.7613, 1.72 s/step, about 159 min left in this epoch
+  ... epoch 2: step 4185/8675, train loss 1.7554, 1.72 s/step, about 129 min left in this epoch
+  ... epoch 2: step 5230/8675, train loss 1.7457, 1.72 s/step, about 99 min left in this epoch
+  ... epoch 2: step 6274/8675, train loss 1.7394, 1.72 s/step, about 69 min left in this epoch
+  ... epoch 2: step 7318/8675, train loss 1.7310, 1.72 s/step, about 39 min left in this epoch
+  ... epoch 2: step 8362/8675, train loss 1.7239, 1.72 s/step, about 9 min left in this epoch
+[epoch 2] train loss=1.7217  {'labelled_val': {'loss': 1.5503, 'perplexity': 4.71}, 'external_val': {'loss': 1.5629, 'perplexity': 4.77}}  (503.4 min; at most 252 min left)
+  ... epoch 3: step 1048/8675, train loss 1.6530, 1.72 s/step, about 218 min left in this epoch
+  ... epoch 3: step 2098/8675, train loss 1.6499, 1.72 s/step, about 188 min left in this epoch
+  ... epoch 3: step 3147/8675, train loss 1.6471, 1.72 s/step, about 158 min left in this epoch
+  ... epoch 3: step 4196/8675, train loss 1.6393, 1.72 s/step, about 128 min left in this epoch
+  ... epoch 3: step 5245/8675, train loss 1.6388, 1.72 s/step, about 98 min left in this epoch
+Plan: stage 1 on ['task', 'external'] (each until early stopping); stage 2: up to 18 fine-tuning runs of ~25 min on a Tesla T4 (finished runs are skipped). Seeds [1, 2, 3].
+
+[skip] step 2: the corpus is up to date (use --rebuild-corpus to build it again)
+
+==============================================================================
+>>> step5_run_all.py --encoders bert-base-uncased    (0.0 h so far)
+==============================================================================
+6 runs: 1 encoders x 2 configurations x 3 seeds
+[1/6] base__bert__ce__seed1: already done, skipped
+[2/6] base__bert__ce__seed2: already done, skipped
+[3/6] base__bert__ce__seed3: already done, skipped
+[4/6] base__bert_bilstm_att__wce__seed1: already done, skipped
+[5/6] base__bert_bilstm_att__wce__seed2: already done, skipped
+[6/6] base__bert_bilstm_att__wce__seed3: already done, skipped
+
+==============================================================================
+>>> step6_compare.py    (0.0 h so far)
+==============================================================================
+# Original BERT vs domain-adapted BERT (test set, 865 reports)
+
+## Results (mean ± standard deviation over seeds)
+
+| configuration | encoder | seeds | macro-F1 | accuracy | macro-P | macro-R | critical recall | F1 Fire | F1 Capsizing | F1 Flooding |
+|---|---|---|---|---|---|---|---|---|---|---|
+| bert + ce | base | 3 | 0.901 ± 0.008 | 0.929 ± 0.005 | 0.907 ± 0.011 | 0.898 ± 0.006 | 0.867 ± 0.011 | 0.962 ± 0.006 | 0.843 ± 0.024 | 0.826 ± 0.027 |
+| bert + ce | bert-maib-task | 3 | 0.916 ± 0.003 | 0.939 ± 0.001 | 0.928 ± 0.006 | 0.908 ± 0.002 | 0.867 ± 0.003 | 0.973 ± 0.006 | 0.836 ± 0.018 | 0.876 ± 0.018 |
+| bert_bilstm_att + wce | base | 3 | 0.910 ± 0.009 | 0.931 ± 0.007 | 0.920 ± 0.011 | 0.905 ± 0.006 | 0.870 ± 0.012 | 0.969 ± 0.000 | 0.864 ± 0.022 | 0.882 ± 0.008 |
+| bert_bilstm_att + wce | bert-maib-task | 3 | 0.911 ± 0.004 | 0.933 ± 0.004 | 0.921 ± 0.005 | 0.907 ± 0.011 | 0.873 ± 0.022 | 0.963 ± 0.011 | 0.860 ± 0.025 | 0.876 ± 0.038 |
+
+## Significance: adapted encoder (B) against the original BERT (A)
+
+Paired bootstrap of the seed-averaged macro-F1 difference (2000 resamples); exact McNemar test per seed.
+
+| configuration | encoder (B) vs base (A) | seeds | delta macro-F1 | 95% CI | bootstrap p | McNemar p per seed |
+|---|---|---|---|---|---|---|
+| bert + ce | bert-maib-task | 3 | +0.0143 | [+0.0015, +0.0278] | 0.032 | 0.024, 0.210, 0.473 |
+| bert_bilstm_att + wce | bert-maib-task | 3 | +0.0014 | [-0.0083, +0.0109] | 0.776 | 0.648, 0.523, 0.043 |
+
+## Stage 1: MLM perplexity on the validation reports (lower = BERT knows the language better)
+
+converged = early stopping ended the run; NO = the loss was still falling at the last allowed epoch.
+Perplexities of different corpora are not comparable as a measure of quality: TAPT is trained on texts
+like the validation reports, so its perplexity is lower without the encoder being better for classification.
+
+| encoder | corpus texts | corpus words | starts from | best epoch | epochs run | converged | perplexity before | perplexity after |
+|---|---|---|---|---|---|---|---|---|
+| bert-maib-task | 4033 | 268908 | bert-base-uncased | 14 | 17 | yes | 8.21 | 3.16 |
+
+Saved reports\comparison.md
+
+[skip] stage 1 on 'task': models\bert-maib-task already exists (move it away to train it again, see archive_previous_run.py)
+
+==============================================================================
+>>> step5_run_all.py --encoders models\bert-maib-task --skip-base    (0.0 h so far)
+==============================================================================
+6 runs: 1 encoders x 2 configurations x 3 seeds
+[1/6] bert-maib-task__bert__ce__seed1: already done, skipped
+[2/6] bert-maib-task__bert__ce__seed2: already done, skipped
+[3/6] bert-maib-task__bert__ce__seed3: already done, skipped
+[4/6] bert-maib-task__bert_bilstm_att__wce__seed1: already done, skipped
+[5/6] bert-maib-task__bert_bilstm_att__wce__seed2: already done, skipped
+[6/6] bert-maib-task__bert_bilstm_att__wce__seed3: already done, skipped
+
+==============================================================================
+>>> step6_compare.py    (0.1 h so far)
+==============================================================================
+# Original BERT vs domain-adapted BERT (test set, 865 reports)
+
+## Results (mean ± standard deviation over seeds)
+
+| configuration | encoder | seeds | macro-F1 | accuracy | macro-P | macro-R | critical recall | F1 Fire | F1 Capsizing | F1 Flooding |
+|---|---|---|---|---|---|---|---|---|---|---|
+| bert + ce | base | 3 | 0.901 ± 0.008 | 0.929 ± 0.005 | 0.907 ± 0.011 | 0.898 ± 0.006 | 0.867 ± 0.011 | 0.962 ± 0.006 | 0.843 ± 0.024 | 0.826 ± 0.027 |
+| bert + ce | bert-maib-task | 3 | 0.916 ± 0.003 | 0.939 ± 0.001 | 0.928 ± 0.006 | 0.908 ± 0.002 | 0.867 ± 0.003 | 0.973 ± 0.006 | 0.836 ± 0.018 | 0.876 ± 0.018 |
+| bert_bilstm_att + wce | base | 3 | 0.910 ± 0.009 | 0.931 ± 0.007 | 0.920 ± 0.011 | 0.905 ± 0.006 | 0.870 ± 0.012 | 0.969 ± 0.000 | 0.864 ± 0.022 | 0.882 ± 0.008 |
+| bert_bilstm_att + wce | bert-maib-task | 3 | 0.911 ± 0.004 | 0.933 ± 0.004 | 0.921 ± 0.005 | 0.907 ± 0.011 | 0.873 ± 0.022 | 0.963 ± 0.011 | 0.860 ± 0.025 | 0.876 ± 0.038 |
+
+## Significance: adapted encoder (B) against the original BERT (A)
+
+Paired bootstrap of the seed-averaged macro-F1 difference (2000 resamples); exact McNemar test per seed.
+
+| configuration | encoder (B) vs base (A) | seeds | delta macro-F1 | 95% CI | bootstrap p | McNemar p per seed |
+|---|---|---|---|---|---|---|
+| bert + ce | bert-maib-task | 3 | +0.0143 | [+0.0015, +0.0278] | 0.032 | 0.024, 0.210, 0.473 |
+| bert_bilstm_att + wce | bert-maib-task | 3 | +0.0014 | [-0.0083, +0.0109] | 0.776 | 0.648, 0.523, 0.043 |
+
+## Stage 1: MLM perplexity on the validation reports (lower = BERT knows the language better)
+
+converged = early stopping ended the run; NO = the loss was still falling at the last allowed epoch.
+Perplexities of different corpora are not comparable as a measure of quality: TAPT is trained on texts
+like the validation reports, so its perplexity is lower without the encoder being better for classification.
+
+| encoder | corpus texts | corpus words | starts from | best epoch | epochs run | converged | perplexity before | perplexity after |
+|---|---|---|---|---|---|---|---|---|
+| bert-maib-task | 4033 | 268908 | bert-base-uncased | 14 | 17 | yes | 8.21 | 3.16 |
+
+Saved reports\comparison.md
+
+==============================================================================
+>>> step3_pretrain_mlm.py --corpus external --epochs 3 --batch-size 8    (0.1 h so far)
+==============================================================================
+===== bert-maib-external =====  69395 texts, 9,231,654 words, starting from bert-base-uncased, device=cuda, batch=8 x 4, at most 3 epochs, patience 2
+[transformers] [1mBertForMaskedLM LOAD REPORT[0m from: bert-base-uncased
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+cls.seq_relationship.weight | UNEXPECTED |  | 
+cls.seq_relationship.bias   | UNEXPECTED |  | 
+bert.pooler.dense.weight    | UNEXPECTED |  | 
+bert.pooler.dense.bias      | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[resume] continuing after epoch 2 (from models\bert-maib-external.resume.pt)
+  ... epoch 3: step 1052/8675, train loss 1.6528, 1.71 s/step, about 218 min left in this epoch
+  ... epoch 3: step 2102/8675, train loss 1.6497, 1.71 s/step, about 188 min left in this epoch
+  ... epoch 3: step 3152/8675, train loss 1.6473, 1.71 s/step, about 158 min left in this epoch
+  ... epoch 3: step 4202/8675, train loss 1.6392, 1.71 s/step, about 128 min left in this epoch
+  ... epoch 3: step 5252/8675, train loss 1.6390, 1.71 s/step, about 98 min left in this epoch
+  ... epoch 3: step 6302/8675, train loss 1.6352, 1.71 s/step, about 68 min left in this epoch
+  ... epoch 3: step 7353/8675, train loss 1.6327, 1.71 s/step, about 38 min left in this epoch
+  ... epoch 3: step 8406/8675, train loss 1.6292, 1.71 s/step, about 8 min left in this epoch
+[epoch 3] train loss=1.6281  {'labelled_val': {'loss': 1.5171, 'perplexity': 4.56}, 'external_val': {'loss': 1.5174, 'perplexity': 4.56}}  (754.4 min; at most 0 min left)
+[after] {'labelled_val': {'loss': 1.5171, 'perplexity': 4.56}, 'external_val': {'loss': 1.5174, 'perplexity': 4.56}}
+Saved models\bert-maib-external/ (best epoch 3 of 3 run)
+[warning] NOT CONVERGED: the validation loss was still falling at the last allowed epoch (3). Raise the ceiling (--epochs, or config.MLM_EPOCHS) for a complete pre-training.
+
+==============================================================================
+>>> step5_run_all.py --encoders models\bert-maib-external --skip-base    (4.3 h so far)
+==============================================================================
+6 runs: 1 encoders x 2 configurations x 3 seeds
+[1/6 to do]
+===== bert-maib-external__bert__ce__seed1 =====  encoder=models\bert-maib-external  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-external
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.8645  val macro-F1=0.9089  (9.5 min)
+[epoch 2] train loss=0.2110  val macro-F1=0.9018  (19.0 min)
+[epoch 3] train loss=0.1241  val macro-F1=0.9135  (28.8 min)
+[epoch 4] train loss=0.0661  val macro-F1=0.9106  (38.5 min)
+[epoch 5] train loss=0.0344  val macro-F1=0.9144  (48.2 min)
+[test] macro-F1=0.9013  accuracy=0.9295  (best epoch 5)
+[2/6 to do]
+===== bert-maib-external__bert__ce__seed2 =====  encoder=models\bert-maib-external  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-external
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.8936  val macro-F1=0.8915  (23.7 min)
+[epoch 2] train loss=0.2197  val macro-F1=0.9096  (48.9 min)
+[epoch 3] train loss=0.1307  val macro-F1=0.9104  (73.6 min)
+[epoch 4] train loss=0.0732  val macro-F1=0.9080  (98.9 min)
+[epoch 5] train loss=0.0433  val macro-F1=0.9019  (109.1 min)
+[early stop] no improvement for 2 epochs
+[test] macro-F1=0.9039  accuracy=0.9283  (best epoch 3)
+[3/6 to do]
+===== bert-maib-external__bert__ce__seed3 =====  encoder=models\bert-maib-external  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-external
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.8914  val macro-F1=0.8808  (23.5 min)
+[epoch 2] train loss=0.2230  val macro-F1=0.9058  (48.7 min)
+[epoch 3] train loss=0.1367  val macro-F1=0.9060  (73.1 min)
+[epoch 4] train loss=0.0774  val macro-F1=0.9026  (98.0 min)
+[epoch 5] train loss=0.0477  val macro-F1=0.9046  (122.4 min)
+[early stop] no improvement for 2 epochs
+[test] macro-F1=0.8987  accuracy=0.9306  (best epoch 3)
+[4/6 to do]
+===== bert-maib-external__bert_bilstm_att__wce__seed1 =====  encoder=models\bert-maib-external  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-external
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.9807  val macro-F1=0.8718  (9.7 min)
+[epoch 2] train loss=0.2673  val macro-F1=0.9097  (19.4 min)
+[epoch 3] train loss=0.1783  val macro-F1=0.9112  (29.4 min)
+[epoch 4] train loss=0.1170  val macro-F1=0.9116  (39.4 min)
+[epoch 5] train loss=0.0715  val macro-F1=0.9136  (49.4 min)
+[test] macro-F1=0.9145  accuracy=0.9353  (best epoch 5)
+[5/6 to do]
+===== bert-maib-external__bert_bilstm_att__wce__seed2 =====  encoder=models\bert-maib-external  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-external
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.9940  val macro-F1=0.8979  (17.2 min)
+[epoch 2] train loss=0.2783  val macro-F1=0.9090  (34.5 min)
+[epoch 3] train loss=0.1953  val macro-F1=0.9038  (52.0 min)
+[epoch 4] train loss=0.1260  val macro-F1=0.9128  (69.4 min)
+[epoch 5] train loss=0.0896  val macro-F1=0.9101  (86.8 min)
+[test] macro-F1=0.9083  accuracy=0.9283  (best epoch 4)
+[6/6 to do]
+===== bert-maib-external__bert_bilstm_att__wce__seed3 =====  encoder=models\bert-maib-external  device=cuda  batch=8 x 4
+[transformers] [1mBertModel LOAD REPORT[0m from: models\bert-maib-external
+Key                                        | Status     | 
+-------------------------------------------+------------+-
+cls.predictions.bias                       | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.weight | UNEXPECTED | 
+cls.predictions.transform.LayerNorm.bias   | UNEXPECTED | 
+cls.predictions.transform.dense.weight     | UNEXPECTED | 
+cls.predictions.transform.dense.bias       | UNEXPECTED | 
+pooler.dense.weight                        | MISSING    | 
+pooler.dense.bias                          | MISSING    | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+- MISSING:	those params were newly initialized because missing from the checkpoint. Consider training on your downstream task.
+[epoch 1] train loss=0.9758  val macro-F1=0.8501  (9.8 min)
+[epoch 2] train loss=0.2876  val macro-F1=0.9071  (19.8 min)
+[epoch 3] train loss=0.1965  val macro-F1=0.9113  (29.8 min)
+[epoch 4] train loss=0.1277  val macro-F1=0.9089  (40.0 min)
+[epoch 5] train loss=0.0852  val macro-F1=0.9110  (49.9 min)
+[early stop] no improvement for 2 epochs
+[test] macro-F1=0.8928  accuracy=0.9260  (best epoch 3)
+
+==============================================================================
+>>> step6_compare.py    (12.2 h so far)
+==============================================================================
+# Original BERT vs domain-adapted BERT (test set, 865 reports)
+
+## Results (mean ± standard deviation over seeds)
+
+| configuration | encoder | seeds | macro-F1 | accuracy | macro-P | macro-R | critical recall | F1 Fire | F1 Capsizing | F1 Flooding |
+|---|---|---|---|---|---|---|---|---|---|---|
+| bert + ce | base | 3 | 0.901 ± 0.008 | 0.929 ± 0.005 | 0.907 ± 0.011 | 0.898 ± 0.006 | 0.867 ± 0.011 | 0.962 ± 0.006 | 0.843 ± 0.024 | 0.826 ± 0.027 |
+| bert + ce | bert-maib-external | 3 | 0.901 ± 0.003 | 0.929 ± 0.001 | 0.916 ± 0.011 | 0.893 ± 0.004 | 0.846 ± 0.011 | 0.962 ± 0.006 | 0.805 ± 0.039 | 0.855 ± 0.031 |
+| bert + ce | bert-maib-task | 3 | 0.916 ± 0.003 | 0.939 ± 0.001 | 0.928 ± 0.006 | 0.908 ± 0.002 | 0.867 ± 0.003 | 0.973 ± 0.006 | 0.836 ± 0.018 | 0.876 ± 0.018 |
+| bert_bilstm_att + wce | base | 3 | 0.910 ± 0.009 | 0.931 ± 0.007 | 0.920 ± 0.011 | 0.905 ± 0.006 | 0.870 ± 0.012 | 0.969 ± 0.000 | 0.864 ± 0.022 | 0.882 ± 0.008 |
+| bert_bilstm_att + wce | bert-maib-external | 3 | 0.905 ± 0.011 | 0.930 ± 0.005 | 0.911 ± 0.020 | 0.905 ± 0.004 | 0.868 ± 0.011 | 0.963 ± 0.011 | 0.840 ± 0.052 | 0.865 ± 0.048 |
+| bert_bilstm_att + wce | bert-maib-task | 3 | 0.911 ± 0.004 | 0.933 ± 0.004 | 0.921 ± 0.005 | 0.907 ± 0.011 | 0.873 ± 0.022 | 0.963 ± 0.011 | 0.860 ± 0.025 | 0.876 ± 0.038 |
+
+## Significance: adapted encoder (B) against the original BERT (A)
+
+Paired bootstrap of the seed-averaged macro-F1 difference (2000 resamples); exact McNemar test per seed.
+
+| configuration | encoder (B) vs base (A) | seeds | delta macro-F1 | 95% CI | bootstrap p | McNemar p per seed |
+|---|---|---|---|---|---|---|
+| bert + ce | bert-maib-external | 3 | -0.0000 | [-0.0181, +0.0149] | 0.951 | 0.458, 0.845, 0.736 |
+| bert_bilstm_att + wce | bert-maib-external | 3 | -0.0047 | [-0.0155, +0.0051] | 0.355 | 0.804, 0.503, 0.864 |
+| bert + ce | bert-maib-task | 3 | +0.0143 | [+0.0007, +0.0277] | 0.042 | 0.024, 0.210, 0.473 |
+| bert_bilstm_att + wce | bert-maib-task | 3 | +0.0014 | [-0.0084, +0.0105] | 0.76 | 0.648, 0.523, 0.043 |
+
+## Stage 1: MLM perplexity on the validation reports (lower = BERT knows the language better)
+
+converged = early stopping ended the run; NO = the loss was still falling at the last allowed epoch.
+Perplexities of different corpora are not comparable as a measure of quality: TAPT is trained on texts
+like the validation reports, so its perplexity is lower without the encoder being better for classification.
+
+| encoder | corpus texts | corpus words | starts from | best epoch | epochs run | converged | perplexity before | perplexity after |
+|---|---|---|---|---|---|---|---|---|
+| bert-maib-external | 69395 | 9231654 | bert-base-uncased | 3 | 3 | NO | 8.21 | 4.56 |
+| bert-maib-task | 4033 | 268908 | bert-base-uncased | 14 | 17 | yes | 8.21 | 3.16 |
+
+Saved reports\comparison.md
+
+Done in 12.3 h. Results: reports/comparison.md
+Plan: stage 1 on ['task', 'external'] (each until early stopping); stage 2: up to 18 fine-tuning runs of ~25 min on a Tesla T4 (finished runs are skipped). Seeds [1, 2, 3].
+
+[skip] step 2: the corpus is up to date (use --rebuild-corpus to build it again)
+
+==============================================================================
+>>> step5_run_all.py --encoders bert-base-uncased    (0.0 h so far)
+==============================================================================

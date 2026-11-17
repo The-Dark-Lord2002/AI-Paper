@@ -1,0 +1,32 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\.venv\Lib\site-packages\huggingface_hub\file_download.py:149: UserWarning: `huggingface_hub` cache-system uses symlinks by default to efficiently store duplicated files but your machine does not support them in C:\Users\Javid\.cache\huggingface\hub\models--bert-base-uncased. Caching files will still work but in a degraded version that might require more space on your disk. This warning can be disabled by setting the `HF_HUB_DISABLE_SYMLINKS_WARNING` environment variable. For more details, see https://huggingface.co/docs/huggingface_hub/how-to-cache#limitations.
+To support symlinks on Windows, you either need to activate Developer Mode or to run Python as an administrator. In order to activate developer mode, see this article: https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+  warnings.warn(message)
+C:\Users\Javid\Desktop\plz-don't open\AI-Paper-main\maib-bert-pretraining-server\.venv\Lib\site-packages\huggingface_hub\file_download.py:149: UserWarning: `huggingface_hub` cache-system uses symlinks by default to efficiently store duplicated files but your machine does not support them in C:\Users\Javid\.cache\huggingface\hub. Caching files will still work but in a degraded version that might require more space on your disk. This warning can be disabled by setting the `HF_HUB_DISABLE_SYMLINKS_WARNING` environment variable. For more details, see https://huggingface.co/docs/huggingface_hub/how-to-cache#limitations.
+To support symlinks on Windows, you either need to activate Developer Mode or to run Python as an administrator. In order to activate developer mode, see this article: https://docs.microsoft.com/en-us/windows/apps/get-started/enable-your-device-for-development
+  warnings.warn(message)
+torch 2.7.1+cu126 (built for CUDA 12.6)
+[ok] GPU: NVIDIA GeForce GTX 960, 4.0 GB, compute capability 5.2
+[ok] the GPU computes in float16
+Loading weights:   0%|          | 0/202 [00:00<?, ?it/s]Loading weights: 100%|██████████| 202/202 [00:00<00:00, 12492.07it/s]
+[transformers] [1mBertForMaskedLM LOAD REPORT[0m from: bert-base-uncased
+Key                         | Status     |  | 
+----------------------------+------------+--+-
+bert.pooler.dense.bias      | UNEXPECTED |  | 
+cls.seq_relationship.weight | UNEXPECTED |  | 
+bert.pooler.dense.weight    | UNEXPECTED |  | 
+cls.seq_relationship.bias   | UNEXPECTED |  | 
+
+Notes:
+- UNEXPECTED:	can be ignored when loading from different task/architecture; not ok if you expect identical arch.
+[ok] bert-base-uncased loaded
+[ok] task: 4,033 texts, 1.42 s per step of 8 texts
+[ok] external: 69,395 texts, 1.79 s per step of 8 texts
+[ok] GPU memory used: 2.5 of 4.0 GB
+
+Estimated time on this machine (rough; the real number of stage-1 epochs is decided by early stopping):
+  TAPT (stage 1 on your training reports): 12 min per epoch, about 4.0 h for ~20 epochs
+  one fine-tuning run (stage 2):           about 1.0 h
+  14 fine-tuning runs (base seed 3, TAPT, DAPT; 2 models x 3 seeds): about 14 h
+  DAPT (stage 1 on the other MAIB texts):  4.3 h per epoch, about 13 h for 3 epochs
+  TOTAL: about 31 h = 1.3 days of continuous running (it can be stopped and continued at any time)

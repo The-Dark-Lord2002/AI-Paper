@@ -1,0 +1,5 @@
+configuration,encoder (B) vs base (A),seeds,delta macro-F1,95% CI,bootstrap p,McNemar p per seed
+bert + ce,bert-maib-external,3,-0.0000,"[-0.0181, +0.0149]",0.951,"0.458, 0.845, 0.736"
+bert_bilstm_att + wce,bert-maib-external,3,-0.0047,"[-0.0155, +0.0051]",0.355,"0.804, 0.503, 0.864"
+bert + ce,bert-maib-task,3,+0.0143,"[+0.0007, +0.0277]",0.042,"0.024, 0.210, 0.473"
+bert_bilstm_att + wce,bert-maib-task,3,+0.0014,"[-0.0084, +0.0105]",0.76,"0.648, 0.523, 0.043"

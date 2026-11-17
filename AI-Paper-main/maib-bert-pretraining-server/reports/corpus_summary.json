@@ -1,0 +1,22 @@
+{
+  "files": 1348,
+  "texts_read": 74231,
+  "removed_short": 176,
+  "removed_duplicates": 1008,
+  "removed_labelled_exact": 0,
+  "removed_labelled_near_copy": 0,
+  "kept_texts": 73047,
+  "texts_per_source": {
+    "digests": 11948,
+    "reports": 62283
+  },
+  "kept_per_source": {
+    "digests": 11809,
+    "reports": 61238
+  },
+  "external_train_texts": 69395,
+  "external_val_texts": 3652,
+  "external_words": 9717377,
+  "task_train_texts": 4033,
+  "task_train_words": 268908
+}

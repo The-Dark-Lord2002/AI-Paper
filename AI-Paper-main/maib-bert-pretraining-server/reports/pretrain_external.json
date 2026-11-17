@@ -1,0 +1,81 @@
+{
+  "model": "bert-maib-external",
+  "base_model": "bert-base-uncased",
+  "corpus": "external",
+  "corpus_texts": 69395,
+  "corpus_words": 9231654,
+  "settings": {
+    "mlm_probability": 0.15,
+    "max_tokens": 192,
+    "batch_size": 8,
+    "grad_accum": 4,
+    "lr": 5e-05,
+    "epochs": 3,
+    "patience": 2,
+    "max_texts": null,
+    "device": "cuda",
+    "gpu": "NVIDIA GeForce GTX 960"
+  },
+  "best_epoch": 3,
+  "epochs_run": 3,
+  "converged": false,
+  "train_minutes": 757.7,
+  "before": {
+    "labelled_val": {
+      "loss": 2.1058,
+      "perplexity": 8.21
+    },
+    "external_val": {
+      "loss": 2.7307,
+      "perplexity": 15.34
+    }
+  },
+  "after": {
+    "labelled_val": {
+      "loss": 1.5171,
+      "perplexity": 4.56
+    },
+    "external_val": {
+      "loss": 1.5174,
+      "perplexity": 4.56
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 2.0187,
+      "labelled_val": {
+        "loss": 1.6155,
+        "perplexity": 5.03
+      },
+      "external_val": {
+        "loss": 1.6814,
+        "perplexity": 5.37
+      }
+    },
+    {
+      "epoch": 2,
+      "train_loss": 1.7217,
+      "labelled_val": {
+        "loss": 1.5503,
+        "perplexity": 4.71
+      },
+      "external_val": {
+        "loss": 1.5629,
+        "perplexity": 4.77
+      }
+    },
+    {
+      "epoch": 3,
+      "train_loss": 1.6281,
+      "labelled_val": {
+        "loss": 1.5171,
+        "perplexity": 4.56
+      },
+      "external_val": {
+        "loss": 1.5174,
+        "perplexity": 4.56
+      }
+    }
+  ]
+}
